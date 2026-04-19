@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
 import {
   ArrowRightOnRectangleIcon,
+  ArrowRightStartOnRectangleIcon,
   BellIcon,
   BookmarkIcon,
   BriefcaseIcon,
@@ -14,6 +15,9 @@ import {
   ShoppingCartIcon,
   UserIcon,
 } from "@heroicons/react/24/outline";
+import { auth } from "../firebase";
+import { onAuthStateChanged, signOut } from "firebase/auth";
+import AuthModal from "../components/AuthModal";
 
 const DEFAULT_PROFILE = {
   nombre: "Usuario",
@@ -29,8 +33,27 @@ export default function Sidebar() {
     const saved = localStorage.getItem("userProfile");
     return saved ? JSON.parse(saved) : DEFAULT_PROFILE;
   });
+  const [firebaseUser, setFirebaseUser] = useState(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   const isAdminUser = (profile.role || profile.rol)?.toLowerCase() === "admin";
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setFirebaseUser(user);
+      if (user) {
+        // Actualizar perfil con datos de Firebase
+        setProfile({
+          nombre: user.displayName || user.email?.split('@')[0] || "Usuario",
+          email: user.email || "usuario@ejemplo.com",
+          photoURL: user.photoURL || "",
+          rol: "Cliente",
+          role: "cliente",
+        });
+      }
+    });
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     if (theme === "dark") {
@@ -66,11 +89,16 @@ export default function Sidebar() {
     setTheme((previousTheme) => (previousTheme === "dark" ? "light" : "dark"));
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("provider");
-    localStorage.removeItem("userProfile");
-    window.dispatchEvent(new Event("logout"));
-    window.location.href = "/login";
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      localStorage.removeItem("provider");
+      localStorage.removeItem("userProfile");
+      window.dispatchEvent(new Event("logout"));
+      setProfile(DEFAULT_PROFILE);
+    } catch (error) {
+      console.error("Error al cerrar sesión:", error);
+    }
   };
 
   const getLinkClassName = ({ isActive }) =>
@@ -153,45 +181,62 @@ export default function Sidebar() {
           {theme === "dark" ? "Modo claro" : "Modo oscuro"}
         </button>
 
-        <div className="flex items-center gap-2 px-3 py-3 rounded-xl bg-slate-200 border border-slate-300 dark:bg-[#0b1326] dark:border-gray-700/50">
-          <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-lg ring-1 ring-white/10 flex-shrink-0">
-            {profile.photoURL ? (
-              <img
-                src={profile.photoURL}
-                alt={profile.nombre}
-                className="w-full h-full object-cover"
-                style={{
-                  aspectRatio: "1 / 1",
-                  borderRadius: "50%",
-                  objectFit: "cover",
-                  objectPosition: "center",
-                }}
-              />
-            ) : (
-              <span className="text-white text-lg font-bold">
-                {profile.nombre?.charAt(0)?.toUpperCase() || "U"}
+        {firebaseUser ? (
+          <div className="flex items-center gap-2 px-3 py-3 rounded-xl bg-slate-200 border border-slate-300 dark:bg-[#0b1326] dark:border-gray-700/50">
+            <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-lg ring-1 ring-white/10 flex-shrink-0">
+              {profile.photoURL ? (
+                <img
+                  src={profile.photoURL}
+                  alt={profile.nombre}
+                  className="w-full h-full object-cover"
+                  style={{
+                    aspectRatio: "1 / 1",
+                    borderRadius: "50%",
+                    objectFit: "cover",
+                    objectPosition: "center",
+                  }}
+                />
+              ) : (
+                <span className="text-white text-lg font-bold">
+                  {profile.nombre?.charAt(0)?.toUpperCase() || "U"}
+                </span>
+              )}
+            </div>
+
+            <div className="flex flex-col flex-1 min-w-0 px-1">
+              <span className="text-sm font-semibold text-slate-900 dark:text-white truncate">
+                {profile.nombre || "Usuario"}
               </span>
-            )}
-          </div>
+              <span className="text-xs text-slate-600 dark:text-gray-400 truncate">
+                {profile.rol || "Cliente"}
+              </span>
+            </div>
 
-          <div className="flex flex-col flex-1 min-w-0 px-1">
-            <span className="text-sm font-semibold text-slate-900 dark:text-white truncate">
-              {profile.nombre || "Usuario"}
-            </span>
-            <span className="text-xs text-slate-600 dark:text-gray-400 truncate">
-              {profile.rol || "Cliente"}
-            </span>
+            <button
+              onClick={handleLogout}
+              className="p-1.5 rounded-lg hover:bg-slate-300 dark:hover:bg-gray-700/50 transition-colors group flex-shrink-0 ml-1"
+              title="Cerrar sesion"
+            >
+              <ArrowRightOnRectangleIcon className="text-slate-500 dark:text-gray-400 group-hover:text-slate-800 dark:group-hover:text-white h-5 w-5" />
+            </button>
           </div>
-
+        ) : (
           <button
-            onClick={handleLogout}
-            className="p-1.5 rounded-lg hover:bg-slate-300 dark:hover:bg-gray-700/50 transition-colors group flex-shrink-0 ml-1"
-            title="Cerrar sesion"
+            onClick={() => setShowAuthModal(true)}
+            className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold shadow-lg transition-all"
           >
-            <ArrowRightOnRectangleIcon className="text-slate-500 dark:text-gray-400 group-hover:text-slate-800 dark:group-hover:text-white h-5 w-5" />
+            <ArrowRightStartOnRectangleIcon className="h-5 w-5" />
+            Iniciar Sesión
           </button>
-        </div>
+        )}
       </div>
+
+      {showAuthModal && (
+        <AuthModal
+          onClose={() => setShowAuthModal(false)}
+          onSuccess={() => setShowAuthModal(false)}
+        />
+      )}
     </div>
   );
 }
