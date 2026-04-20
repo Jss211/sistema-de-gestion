@@ -16,6 +16,9 @@ import SpecialOffersSection from "../components/SpecialOffersSection";
 import AuthSection from "../components/AuthSection";
 import CountUp from "../components/CountUp";
 import PaymentMethodsSection from "../components/PaymentMethodsSection";
+import GlareHover from "../components/GlareHover";
+import { auth } from "../firebase";
+import { onAuthStateChanged } from "firebase/auth";
 
 const TRUST_BADGES = [
   {
@@ -103,22 +106,17 @@ export default function Dashboard() {
   );
   const [showLogoutAlert, setShowLogoutAlert] = useState(false);
 
-  const getUserName = () => {
-    const userProfile = JSON.parse(localStorage.getItem("userProfile") || "{}");
-    return userProfile.username || userProfile.nombre || "Usuario";
-  };
-
   useEffect(() => {
-    const updateUserName = () => {
-      setUserName(getUserName());
-    };
-
-    updateUserName();
-    window.addEventListener("profile_updated", updateUserName);
-
-    return () => {
-      window.removeEventListener("profile_updated", updateUserName);
-    };
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        // Usar nombre de Firebase (Google trae displayName, email/pass no)
+        const name = user.displayName || user.email?.split("@")[0] || "Usuario";
+        setUserName(name);
+      } else {
+        setUserName("Usuario");
+      }
+    });
+    return () => unsubscribe();
   }, []);
 
   useEffect(() => {
@@ -244,25 +242,77 @@ export default function Dashboard() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
-                  <div className="bg-white/20 backdrop-blur-xl p-3 rounded-2xl border border-white/30 shadow-2xl flex flex-col items-center justify-center text-center transition hover:bg-white/30">
-                    <ChartBarIcon className="h-6 w-6 mb-1 text-yellow-400" />
-                    <p className="text-xs font-medium text-slate-900 dark:text-slate-200">Productos top</p>
-                  </div>
+                  <GlareHover
+                    width="100%" height="80px"
+                    background="rgba(255,255,255,0.2)"
+                    borderColor="rgba(255,255,255,0.3)"
+                    borderRadius="1rem"
+                    glareColor="#ffffff"
+                    glareOpacity={0.25}
+                    glareAngle={-30}
+                    glareSize={300}
+                    transitionDuration={700}
+                    style={{ backdropFilter: 'blur(12px)' }}
+                  >
+                    <div className="flex flex-col items-center justify-center text-center p-3">
+                      <ChartBarIcon className="h-6 w-6 mb-1 text-yellow-400" />
+                      <p className="text-xs font-medium text-slate-900 dark:text-slate-200">Productos top</p>
+                    </div>
+                  </GlareHover>
 
-                  <div className="bg-white/20 backdrop-blur-xl p-3 rounded-2xl border border-white/30 shadow-2xl flex flex-col items-center justify-center text-center transition hover:bg-white/30">
-                    <DocumentTextIcon className="h-6 w-6 mb-1 text-green-400" />
-                    <p className="text-xs font-medium text-slate-900 dark:text-slate-200">Certificados</p>
-                  </div>
+                  <GlareHover
+                    width="100%" height="80px"
+                    background="rgba(255,255,255,0.2)"
+                    borderColor="rgba(255,255,255,0.3)"
+                    borderRadius="1rem"
+                    glareColor="#ffffff"
+                    glareOpacity={0.25}
+                    glareAngle={-30}
+                    glareSize={300}
+                    transitionDuration={700}
+                    style={{ backdropFilter: 'blur(12px)' }}
+                  >
+                    <div className="flex flex-col items-center justify-center text-center p-3">
+                      <DocumentTextIcon className="h-6 w-6 mb-1 text-green-400" />
+                      <p className="text-xs font-medium text-slate-900 dark:text-slate-200">Certificados</p>
+                    </div>
+                  </GlareHover>
 
-                  <div className="bg-white/20 backdrop-blur-xl p-3 rounded-2xl border border-white/30 shadow-2xl flex flex-col items-center justify-center text-center transition hover:bg-white/30">
-                    <ShieldCheckIcon className="h-6 w-6 mb-1 text-blue-300" />
-                    <p className="text-xs font-medium text-slate-900 dark:text-slate-200">Garantia</p>
-                  </div>
+                  <GlareHover
+                    width="100%" height="80px"
+                    background="rgba(255,255,255,0.2)"
+                    borderColor="rgba(255,255,255,0.3)"
+                    borderRadius="1rem"
+                    glareColor="#ffffff"
+                    glareOpacity={0.25}
+                    glareAngle={-30}
+                    glareSize={300}
+                    transitionDuration={700}
+                    style={{ backdropFilter: 'blur(12px)' }}
+                  >
+                    <div className="flex flex-col items-center justify-center text-center p-3">
+                      <ShieldCheckIcon className="h-6 w-6 mb-1 text-blue-300" />
+                      <p className="text-xs font-medium text-slate-900 dark:text-slate-200">Garantía</p>
+                    </div>
+                  </GlareHover>
 
-                  <div className="bg-white/20 backdrop-blur-xl p-3 rounded-2xl border border-white/30 shadow-2xl flex flex-col items-center justify-center text-center transition hover:bg-white/30">
-                    <UsersIcon className="h-6 w-6 mb-1 text-purple-300" />
-                    <p className="text-xs font-medium text-slate-900 dark:text-slate-200">Clientes</p>
-                  </div>
+                  <GlareHover
+                    width="100%" height="80px"
+                    background="rgba(255,255,255,0.2)"
+                    borderColor="rgba(255,255,255,0.3)"
+                    borderRadius="1rem"
+                    glareColor="#ffffff"
+                    glareOpacity={0.25}
+                    glareAngle={-30}
+                    glareSize={300}
+                    transitionDuration={700}
+                    style={{ backdropFilter: 'blur(12px)' }}
+                  >
+                    <div className="flex flex-col items-center justify-center text-center p-3">
+                      <UsersIcon className="h-6 w-6 mb-1 text-purple-300" />
+                      <p className="text-xs font-medium text-slate-900 dark:text-slate-200">Clientes</p>
+                    </div>
+                  </GlareHover>
                 </div>
               </div>
             </div>
@@ -379,12 +429,15 @@ export default function Dashboard() {
             con una presentacion mas limpia y profesional.
           </p>
 
-          <button
-            onClick={() => (window.location.href = "/catalogo")}
-            className="mt-6 px-8 py-3 rounded-xl text-white font-semibold shadow-lg bg-gradient-to-r from-blue-600 to-black hover:shadow-2xl hover:scale-[1.03] transition cursor-pointer"
-          >
-            Ver catalogo completo
-          </button>
+          <div className="flex justify-center mt-6">
+            <button
+              onClick={() => (window.location.href = "/catalogo")}
+              className="px-8 py-3 rounded-xl text-white font-semibold shadow-lg bg-gradient-to-r from-blue-600 to-blue-800 hover:shadow-2xl hover:scale-[1.03] transition cursor-pointer relative overflow-hidden group"
+            >
+              <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out" />
+              Ver catálogo completo
+            </button>
+          </div>
         </div>
 
         <PaymentMethodsSection />

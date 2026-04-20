@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import StarBorder from "./StarBorder";
-import AuthModal from "./AuthModal";
 import { auth } from "../firebase";
 import { onAuthStateChanged } from "firebase/auth";
+
+const AuthModal = lazy(() => import("./AuthModal"));
 
 export default function AuthSection() {
   const [showModal, setShowModal] = useState(false);
@@ -69,10 +70,12 @@ export default function AuthSection() {
       </div>
 
       {showModal && (
-        <AuthModal
-          onClose={() => setShowModal(false)}
-          onSuccess={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-        />
+        <Suspense fallback={null}>
+          <AuthModal
+            onClose={() => setShowModal(false)}
+            onSuccess={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          />
+        </Suspense>
       )}
 
       <style>{`
