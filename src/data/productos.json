@@ -1,0 +1,131 @@
+[
+  {
+    "id": 1,
+    "nombre": "Laptop Dell XPS 15",
+    "categoria": "Laptops",
+    "precio": 4599.99,
+    "precioAntes": 5200.00,
+    "imagen": "https://i.dell.com/is/image/DellContent/content/dam/ss2/product-images/dell-client-products/notebooks/xps-notebooks/xps-15-9530/media-gallery/touch-black/notebook-xps-15-9530-t-black-gallery-1.psd?fmt=pjpg&pscan=auto&scl=1&wid=3778&hei=2323&qlt=100,1&resMode=sharp2&size=3778,2323&chrss=full&imwidth=5000",
+    "descripcion": "Laptop Dell XPS 15 con procesador Intel Core i7 de 12va generación, 16GB RAM DDR5, SSD NVMe de 512GB y pantalla OLED 4K de 15.6 pulgadas. Ideal para trabajo creativo y gaming.",
+    "stock": 12,
+    "badge": "Oferta"
+  },
+  {
+    "id": 2,
+    "nombre": "MacBook Pro M3",
+    "categoria": "Laptops",
+    "precio": 8999.99,
+    "precioAntes": null,
+    "imagen": "https://i.blogs.es/31432f/macbook-pro-m3-max-review-xataka-portada-final-xataka/650_1200.jpeg",
+    "descripcion": "MacBook Pro con chip Apple M3, 18GB de memoria unificada, SSD de 512GB y pantalla Liquid Retina XDR de 14 pulgadas. Batería de hasta 22 horas de duración.",
+    "stock": 8
+  },
+  {
+    "id": 3,
+    "nombre": "PC Gamer ROG Strix",
+    "categoria": "PCs",
+    "precio": 6299.99,
+    "precioAntes": 7000.00,
+    "imagen": "https://images.unsplash.com/photo-1587202372775-e229f172b9d7?w=400&h=300&fit=crop",
+    "descripcion": "PC Gamer ASUS ROG Strix con RTX 4070, Intel Core i9, 32GB RAM DDR5, SSD 1TB NVMe y gabinete con iluminación RGB personalizable. Rendimiento extremo para gaming.",
+    "stock": 5,
+    "badge": "Oferta"
+  },
+  {
+    "id": 4,
+    "nombre": "PC All-in-One HP 27",
+    "categoria": "PCs",
+    "precio": 3899.99,
+    "precioAntes": null,
+    "imagen": "https://hiraoka.com.pe/media/catalog/product/b/m/bm6x4la_2imagenprincipalsintexto.jpg?quality=85&bg-color=255,255,255&fit=bounds&height=560&width=700&canvas=700:560",
+    "descripcion": "PC All-in-One HP con pantalla táctil de 27 pulgadas Full HD, procesador Intel Core i5, 8GB RAM, SSD 256GB y webcam integrada de alta definición.",
+    "stock": 15,
+    "badge": null
+  },
+  {
+    "id": 5,
+    "nombre": "Mouse Logitech MX Master 3",
+    "categoria": "Mouse",
+    "precio": 389.99,
+    "precioAntes": 450.00,
+    "imagen": "https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=400&h=300&fit=crop",
+    "descripcion": "Mouse inalámbrico Logitech MX Master 3 con sensor de 8000 DPI, rueda de desplazamiento electromagnética, conexión Bluetooth y USB-C, autonomía de 70 días.",
+    "stock": 30,
+    "badge": "Oferta"
+  },
+  {
+    "id": 6,
+    "nombre": "Mouse Razer DeathAdder V3",
+    "categoria": "Mouse",
+    "precio": 299.99,
+    "precioAntes": null,
+    "imagen": "https://images.unsplash.com/photo-1615663245857-ac93bb7c39e7?w=400&h=300&fit=crop",
+    "descripcion": "Mouse gaming Razer DeathAdder V3 con sensor óptico de 30000 DPI, diseño ergonómico, 8 botones programables, iluminación Razer Chroma RGB e interruptores ópticos.",
+    "stock": 25
+  },
+  {
+    "id": 7,
+    "nombre": "Monitor Samsung 27\" 4K",
+    "categoria": "Monitores",
+    "precio": 1899.99,
+    "precioAntes": 2200.00,
+    "imagen": "https://media.falabella.com/falabellaPE/118010628_01/w=800,h=800,fit=pad",
+    "descripcion": "Monitor Samsung de 27 pulgadas resolución 4K UHD, panel IPS, 144Hz, tiempo de respuesta 1ms, compatible con HDR10, puertos HDMI 2.1 y DisplayPort 1.4.",
+    "stock": 18,
+    "badge": "Oferta"
+  },
+  {
+    "id": 8,
+    "nombre": "Teclado Mecánico Keychron K8",
+    "categoria": "Accesorios",
+    "precio": 449.99,
+    "precioAntes": null,
+    "imagen": "https://images.unsplash.com/photo-1618384887929-16ec33fab9ef?w=400&h=300&fit=crop",
+    "descripcion": "Teclado mecánico Keychron K8 TKL inalámbrico con switches Gateron Red, retroiluminación RGB, compatible con Mac y Windows, batería de 4000mAh y conexión Bluetooth 5.1.",
+    "stock": 22,
+    "badge": null
+  },
+  {
+    "id": 9,
+    "nombre": "Auriculares Sony WH-1000XM5",
+    "categoria": "Accesorios",
+    "precio": 1299.99,
+    "precioAntes": 1500.00,
+    "imagen": "https://images.unsplash.com/photo-1546435770-a3e426bf472b?w=400&h=300&fit=crop",
+    "descripcion": "Auriculares Sony WH-1000XM5 con cancelación de ruido líder en la industria, 30 horas de batería, audio de alta resolución, micrófono dual y carga rápida USB-C.",
+    "stock": 14,
+    "badge": "Oferta"
+  },
+  {
+    "id": 10,
+    "nombre": "Webcam Logitech 4K Pro",
+    "categoria": "Accesorios",
+    "precio": 699.99,
+    "precioAntes": null,
+    "imagen": "https://coolboxpe.vtexassets.com/arquivos/ids/365816-1200-1200?v=638515602957130000&width=1200&height=1200&aspect=true",
+    "descripcion": "Webcam Logitech 4K Pro con resolución Ultra HD, campo visual de 90°, corrección de luz HDR, micrófono estéreo integrado y compatibilidad con Windows, Mac y Linux.",
+    "stock": 20
+  },
+  {
+    "id": 11,
+    "nombre": "SSD Samsung 970 EVO 1TB",
+    "categoria": "Almacenamiento",
+    "precio": 499.99,
+    "precioAntes": 600.00,
+    "imagen": "https://m.media-amazon.com/images/I/71OYNmVRFhL._SY250_.jpg",
+    "descripcion": "SSD NVMe Samsung 970 EVO Plus de 1TB con velocidades de lectura de 3500 MB/s y escritura de 3300 MB/s. Compatible con PCIe 3.0 y factor de forma M.2 2280.",
+    "stock": 40,
+    "badge": "Oferta"
+  },
+  {
+    "id": 12,
+    "nombre": "Laptop Lenovo ThinkPad X1",
+    "categoria": "Laptops",
+    "precio": 5299.99,
+    "precioAntes": null,
+    "imagen": "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=400&h=300&fit=crop",
+    "descripcion": "Lenovo ThinkPad X1 Carbon con procesador Intel Core i7, 16GB RAM LPDDR5, SSD 512GB, pantalla IPS de 14 pulgadas Full HD y teclado retroiluminado. Diseñado para profesionales.",
+    "stock": 9,
+    "badge": null
+  }
+]
