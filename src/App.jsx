@@ -1,14 +1,11 @@
 import { useEffect, useState } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import Dashboard from "./pages/Dashboard";
-<<<<<<< HEAD
 import Catalogo from "./pages/Catalogo";
 import Carrito from "./pages/Carrito";
-=======
 import Estadisticas from "./pages/Estadisticas";
 import Soporte from "./pages/Soporte";
 import MiPerfil from "./pages/MiPerfil";
->>>>>>> Jordan-Login
 
 function App() {
   const [darkMode, setDarkMode] = useState(() => {
