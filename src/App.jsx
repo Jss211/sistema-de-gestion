@@ -1,8 +1,14 @@
 import { useEffect, useState } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import Dashboard from "./pages/Dashboard";
+<<<<<<< HEAD
 import Catalogo from "./pages/Catalogo";
 import Carrito from "./pages/Carrito";
+=======
+import Estadisticas from "./pages/Estadisticas";
+import Soporte from "./pages/Soporte";
+import MiPerfil from "./pages/MiPerfil";
+>>>>>>> Jordan-Login
 
 function App() {
   const [darkMode, setDarkMode] = useState(() => {
@@ -32,6 +38,13 @@ function App() {
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/catalogo" element={<Catalogo />} />
       <Route path="/carrito" element={<Carrito />} />
+      <Route path="/estadisticas" element={<Estadisticas />} />
+      <Route path="/soporte" element={<Soporte />} />
+      <Route path="/mi-perfil" element={<MiPerfil />} />
+      <Route
+        path="/home"
+        element={<HomeWelcome onNavigateToCatalog={() => {}} darkMode={darkMode} />}
+      />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

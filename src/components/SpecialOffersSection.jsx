@@ -2,6 +2,7 @@ import {
   TagIcon,
 } from "@heroicons/react/24/outline";
 import CountUp from "./CountUp";
+import TextType from "./TextType";
 
 export default function SpecialOffersSection({ onNavigateToCatalog }) {
   return (
@@ -14,8 +15,23 @@ export default function SpecialOffersSection({ onNavigateToCatalog }) {
           </div>
 
           <div className="space-y-3">
-            <h2 className="text-3xl font-semibold tracking-tight">
-              Descubre nuestras promociones exclusivas
+            <h2 className="text-3xl font-semibold tracking-tight min-h-[2.5rem]">
+              <TextType
+                text={[
+                  "Descubre nuestras promociones",
+                  "Precios increíbles este mes",
+                  "Tecnología al mejor precio",
+                  "Ofertas exclusivas para ti",
+                ]}
+                typingSpeed={60}
+                deletingSpeed={30}
+                pauseDuration={1800}
+                showCursor={true}
+                cursorCharacter="|"
+                cursorClassName="text-white/70"
+                loop={true}
+                as="span"
+              />
             </h2>
             <p className="max-w-xl text-sm text-white/80 leading-7">
               Válido hasta el 12 de mayo de 2026. Artículos seleccionados con entrega rápida y precios especiales para tu oficina, hogar o estudio.
