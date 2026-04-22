@@ -42,11 +42,12 @@ export default function Sidebar() {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setFirebaseUser(user);
       if (user) {
-        // Actualizar perfil con datos de Firebase
+        // Leer datos guardados en perfil (incluye foto personalizada)
+        const saved = JSON.parse(localStorage.getItem(`perfil_${user.uid}`) || "{}");
         setProfile({
-          nombre: user.displayName || user.email?.split('@')[0] || "Usuario",
+          nombre: saved.nombre || user.displayName || "Usuario",
           email: user.email || "usuario@ejemplo.com",
-          photoURL: user.photoURL || "",
+          photoURL: saved.photoURL || user.photoURL || "",
           rol: "Cliente",
           role: "cliente",
         });
@@ -68,8 +69,17 @@ export default function Sidebar() {
 
   useEffect(() => {
     const updateProfile = () => {
-      const saved = localStorage.getItem("userProfile");
-      setProfile(saved ? JSON.parse(saved) : DEFAULT_PROFILE);
+      const user = auth.currentUser;
+      if (user) {
+        const saved = JSON.parse(localStorage.getItem(`perfil_${user.uid}`) || "{}");
+        setProfile({
+          nombre: saved.nombre || user.displayName || "Usuario",
+          email: user.email || "",
+          photoURL: saved.photoURL || user.photoURL || "",
+          rol: "Cliente",
+          role: "cliente",
+        });
+      }
     };
 
     const onLogout = () => {
