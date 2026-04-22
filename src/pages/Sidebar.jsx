@@ -29,6 +29,18 @@ const DEFAULT_PROFILE = {
 
 export default function Sidebar() {
   const [theme, setTheme] = useState(() => localStorage.getItem("theme") || "dark");
+  const [cartCount, setCartCount] = useState(() => {
+    try {
+      const c = JSON.parse(localStorage.getItem("techvault_cart") || "[]");
+      return c.reduce((acc, x) => acc + (x.cantidad || x.quantity || 1), 0);
+    } catch { return 0; }
+  });
+  const [favCount, setFavCount] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("techvault_favoritos") || "[]").length; } catch { return 0; }
+  });
+  const [notifCount, setNotifCount] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("techvault_notifs") || "[]").filter(n => !n.read).length; } catch { return 0; }
+  });
   const [profile, setProfile] = useState(() => {
     const saved = localStorage.getItem("userProfile");
     return saved ? JSON.parse(saved) : DEFAULT_PROFILE;
@@ -95,6 +107,35 @@ export default function Sidebar() {
     };
   }, []);
 
+  useEffect(() => {
+    const updateCart = () => {
+      try {
+        const c = JSON.parse(localStorage.getItem("techvault_cart") || "[]");
+        setCartCount(c.reduce((acc, x) => acc + (x.cantidad || x.quantity || 1), 0));
+      } catch { setCartCount(0); }
+    };
+    const updateFavs = () => {
+      try { setFavCount(JSON.parse(localStorage.getItem("techvault_favoritos") || "[]").length); } catch { setFavCount(0); }
+    };
+    const updateNotifs = () => {
+      try { setNotifCount(JSON.parse(localStorage.getItem("techvault_notifs") || "[]").filter(n => !n.read).length); } catch { setNotifCount(0); }
+    };
+    window.addEventListener("cart_updated", updateCart);
+    window.addEventListener("storage", updateCart);
+    window.addEventListener("favoritos_updated", updateFavs);
+    window.addEventListener("storage", updateFavs);
+    window.addEventListener("notifs_updated", updateNotifs);
+    window.addEventListener("storage", updateNotifs);
+    return () => {
+      window.removeEventListener("cart_updated", updateCart);
+      window.removeEventListener("storage", updateCart);
+      window.removeEventListener("favoritos_updated", updateFavs);
+      window.removeEventListener("storage", updateFavs);
+      window.removeEventListener("notifs_updated", updateNotifs);
+      window.removeEventListener("storage", updateNotifs);
+    };
+  }, []);
+
   const toggleTheme = () => {
     setTheme((previousTheme) => (previousTheme === "dark" ? "light" : "dark"));
   };
@@ -153,6 +194,11 @@ export default function Sidebar() {
           <NavLink to="/carrito" className={getLinkClassName}>
             <ShoppingCartIcon className="h-5 w-5" />
             Carrito
+            {cartCount > 0 && (
+              <span style={{ marginLeft: "auto", background: "#2563eb", color: "#fff", borderRadius: "50%", width: "20px", height: "20px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.7rem", fontWeight: 800, flexShrink: 0 }}>
+                {cartCount > 99 ? "99+" : cartCount}
+              </span>
+            )}
           </NavLink>
 
           <NavLink to="/mis-pedidos" className={getLinkClassName}>
@@ -163,11 +209,21 @@ export default function Sidebar() {
           <NavLink to="/favoritos" className={getLinkClassName}>
             <BookmarkIcon className="h-5 w-5" />
             Favoritos
+            {favCount > 0 && (
+              <span style={{ marginLeft: "auto", background: "#ef4444", color: "#fff", borderRadius: "50%", width: "20px", height: "20px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.7rem", fontWeight: 800, flexShrink: 0 }}>
+                {favCount > 99 ? "99+" : favCount}
+              </span>
+            )}
           </NavLink>
 
           <NavLink to="/notificaciones" className={getLinkClassName}>
             <BellIcon className="h-5 w-5" />
             Notificaciones
+            {notifCount > 0 && (
+              <span style={{ marginLeft: "auto", background: "#f59e0b", color: "#000", borderRadius: "50%", width: "20px", height: "20px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.7rem", fontWeight: 800, flexShrink: 0 }}>
+                {notifCount > 99 ? "99+" : notifCount}
+              </span>
+            )}
           </NavLink>
 
           <NavLink to="/mi-perfil" className={getLinkClassName}>

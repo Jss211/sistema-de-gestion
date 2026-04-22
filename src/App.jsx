@@ -6,6 +6,9 @@ import Carrito from "./pages/Carrito";
 import Estadisticas from "./pages/Estadisticas";
 import Soporte from "./pages/Soporte";
 import MiPerfil from "./pages/MiPerfil";
+import Favoritos from "./pages/Favoritos";
+import MisPedidos from "./pages/MisPedidos";
+import Notificaciones from "./pages/Notificaciones";
 
 function App() {
   const [darkMode, setDarkMode] = useState(() => {
@@ -38,10 +41,9 @@ function App() {
       <Route path="/estadisticas" element={<Estadisticas />} />
       <Route path="/soporte" element={<Soporte />} />
       <Route path="/mi-perfil" element={<MiPerfil />} />
-      <Route
-        path="/home"
-        element={<HomeWelcome onNavigateToCatalog={() => {}} darkMode={darkMode} />}
-      />
+      <Route path="/favoritos" element={<Favoritos />} />
+      <Route path="/mis-pedidos" element={<MisPedidos />} />
+      <Route path="/notificaciones" element={<Notificaciones />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

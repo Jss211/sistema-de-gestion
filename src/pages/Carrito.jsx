@@ -1,208 +1,547 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import Sidebar from "./Sidebar";
-import { 
-  TrashIcon, 
-  CreditCardIcon, 
-  QrCodeIcon, 
-  BanknotesIcon,
-  CheckCircleIcon 
-} from "@heroicons/react/24/outline";
+import { TrashIcon, CreditCardIcon, PrinterIcon } from "@heroicons/react/24/outline";
+import { CheckCircleIcon } from "@heroicons/react/24/solid";
+import { auth } from "../firebase";
+import { pushNotif } from "./Notificaciones";
+
+const PAYMENT_METHODS = [
+  {
+    id: "tarjeta",
+    label: "Tarjeta Visa / Débito",
+    img: "/payment-logos/visa.png",
+  },
+  {
+    id: "yape",
+    label: "Yape",
+    img: "/payment-logos/yape.png",
+  },
+  {
+    id: "bcp",
+    label: "BCP",
+    img: "/payment-logos/bcp.png",
+  },
+  {
+    id: "scotiabank",
+    label: "Scotiabank",
+    img: "/payment-logos/scotiabank.png",
+  },
+];
 
 export default function CartPage() {
+  const navigate = useNavigate();
+  const ticketRef = useRef(null);
   const [cart, setCart] = useState([]);
-  const [paymentMethod, setPaymentMethod] = useState(""); 
-  const [step, setStep] = useState(1); 
-
-  const [cardData, setCardData] = useState({
-    number: "",
-    name: "",
-    date: "",
-    cvv: ""
-  });
-
+  const [step, setStep] = useState(1);
+  const [paymentMethod, setPaymentMethod] = useState("");
+  const [cardData, setCardData] = useState({ number: "", name: "", date: "", cvv: "" });
   const [voucher, setVoucher] = useState(null);
+  const [orderData, setOrderData] = useState(null);
+  const [clientName, setClientName] = useState("Cliente");
 
   useEffect(() => {
-    const savedCart = JSON.parse(localStorage.getItem("techvault_cart") || "[]");
-    setCart(savedCart);
+    const saved = JSON.parse(localStorage.getItem("techvault_cart") || "[]");
+    setCart(saved);
+    // Obtener nombre del cliente
+    const user = auth.currentUser;
+    if (user) {
+      const perfil = JSON.parse(localStorage.getItem(`perfil_${user.uid}`) || "{}");
+      setClientName(perfil.nombre || user.displayName || user.email?.split("@")[0] || "Cliente");
+    }
   }, []);
 
-  const total = cart.reduce((acc, item) => acc + (item.price * (item.quantity || 1)), 0);
-
-  const removeItem = (id) => {
-    const updated = cart.filter(item => item.id !== id);
+  const syncCart = (updated) => {
     setCart(updated);
     localStorage.setItem("techvault_cart", JSON.stringify(updated));
+    window.dispatchEvent(new Event("cart_updated"));
   };
 
+  const removeItem = (id) => syncCart(cart.filter((x) => x.id !== id));
+
+  const changeQty = (id, delta) =>
+    syncCart(cart.map((x) => x.id === id
+      ? { ...x, cantidad: Math.max(1, (x.cantidad || 1) + delta), quantity: Math.max(1, (x.cantidad || 1) + delta) }
+      : x));
+
+  const subtotal = cart.reduce((acc, x) => acc + (x.precio || x.price) * (x.cantidad || 1), 0);
+
   const handleFinishPayment = () => {
+    if (!paymentMethod) return alert("Selecciona un método de pago");
+    if (paymentMethod === "tarjeta" && (!cardData.number || !cardData.name || !cardData.date || !cardData.cvv))
+      return alert("Completa los datos de la tarjeta");
+    if ((paymentMethod === "yape" || paymentMethod === "bcp" || paymentMethod === "scotiabank") && !voucher)
+      return alert("Debes subir tu voucher");
 
-    if (!paymentMethod) {
-      alert("Selecciona un método de pago");
-      return;
-    }
-
-    if (paymentMethod === "mercado-pago") {
-      if (!cardData.number || !cardData.name || !cardData.date || !cardData.cvv) {
-        alert("Completa los datos de la tarjeta");
-        return;
-      }
-    }
-
-    if ((paymentMethod === "yape" || paymentMethod === "banco") && !voucher) {
-      alert("Debes subir tu voucher");
-      return;
-    }
-
-    // Guardar pedido
-    const orders = JSON.parse(localStorage.getItem("orders") || "[]");
-
-    const newOrder = {
+    const now = new Date();
+    const order = {
       id: Date.now(),
+      orderId: `TV-${Date.now().toString().slice(-8)}`,
       products: cart,
-      total,
+      total: subtotal,
       paymentMethod,
-      status: paymentMethod === "mercado-pago" ? "pagado" : "en_revision",
-      voucher: voucher ? voucher.name : null,
-      date: new Date().toLocaleString()
+      status: paymentMethod === "tarjeta" ? "pagado" : "en_revision",
+      date: now.toLocaleDateString("es-PE", { year: "numeric", month: "long", day: "numeric" }),
+      time: now.toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" }),
+      clientName,
     };
 
-    localStorage.setItem("orders", JSON.stringify([...orders, newOrder]));
-
+    const orders = JSON.parse(localStorage.getItem("orders") || "[]");
+    localStorage.setItem("orders", JSON.stringify([...orders, order]));
+    setOrderData(order);
+    syncCart([]);
+    // Notificación automática
+    pushNotif({
+      type: paymentMethod === "tarjeta" ? "pago" : "pedido",
+      title: paymentMethod === "tarjeta" ? "¡Pago confirmado!" : "Pedido en revisión",
+      body: `Tu pedido ${order.orderId} por S/ ${subtotal.toFixed(2)} fue registrado correctamente.`,
+    });
     setStep(3);
-    localStorage.removeItem("techvault_cart");
+  };
+
+  const handlePrint = () => {
+    const win = window.open("", "_blank", "width=400,height=750");
+    win.document.write(`
+      <html><head><title>Ticket TechVault</title>
+      <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Courier New', monospace; background: #fff; color: #111; padding: 16px; font-size: 12px; width: 320px; margin: 0 auto; }
+        .center { text-align: center; }
+        .bold { font-weight: 700; }
+        .sep-star { color: #999; letter-spacing: 2px; }
+        .sep-dash { color: #bbb; letter-spacing: 1px; }
+        .sep-eq { color: #555; letter-spacing: 1px; font-weight: 700; }
+        .label { color: #555; }
+        .row { display: flex; justify-content: space-between; margin-bottom: 2px; }
+        .section-title { font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: #888; margin: 4px 0 3px; }
+        .product-name { font-weight: 700; font-size: 12px; }
+        .product-detail { color: #555; font-size: 11px; }
+        .total-row { display: flex; justify-content: space-between; font-size: 14px; font-weight: 900; margin-top: 4px; }
+        .small { font-size: 10px; color: #777; }
+        .policy { font-size: 10px; color: #666; margin-bottom: 2px; }
+        p { margin: 1px 0; }
+      </style>
+      </head><body>
+        <div class="center">
+          <p class="sep-star">* * * * * * * * * * * * * * *</p>
+          <p style="font-size:18px;font-weight:900;letter-spacing:3px;margin:4px 0">TECHVAULT</p>
+          <p class="small">Sistema de Gestión Tecnológica</p>
+          <p class="small">www.techvault.com</p>
+          <p class="small">Lima, Perú | Tel: +51 999 999 999</p>
+          <p class="sep-dash" style="margin-top:4px">- - - - - - - - - - - - - - -</p>
+        </div>
+        ${ticketRef.current.querySelector ? "" : ""}
+        <p class="section-title">COMPROBANTE DE VENTA</p>
+        ${[
+          ["N° Pedido", orderData?.orderId],
+          ["Fecha", orderData?.date],
+          ["Hora", orderData?.time],
+          ["Cajero", "Sistema Automático"],
+          ["Cliente", orderData?.clientName],
+          ["Pago", PAYMENT_METHODS.find(m => m.id === orderData?.paymentMethod)?.label || orderData?.paymentMethod],
+          ["Estado", orderData?.status === "pagado" ? "PAGADO ✓" : "EN REVISIÓN"],
+        ].map(([k,v]) => `<div class="row"><span class="label">${k}</span><span class="bold">${v}</span></div>`).join("")}
+        <p class="sep-dash" style="margin:5px 0">- - - - - - - - - - - - - - -</p>
+        <div class="row"><span class="section-title">DESCRIPCIÓN</span><span class="section-title">IMPORTE</span></div>
+        ${orderData?.products.map((item, idx) => {
+          const nombre = item.nombre || item.name;
+          const precio = item.precio || item.price;
+          const cantidad = item.cantidad || item.quantity || 1;
+          return `<div style="margin-bottom:5px">
+            <p class="product-name">${String(idx+1).padStart(2,"0")}. ${nombre}</p>
+            <div class="row"><span class="product-detail">${cantidad} und x S/${precio.toFixed(2)}</span><span class="bold">S/ ${(precio*cantidad).toFixed(2)}</span></div>
+            ${item.categoria ? `<p class="small">Cat: ${item.categoria}</p>` : ""}
+          </div>`;
+        }).join("")}
+        <p class="sep-dash" style="margin:5px 0">- - - - - - - - - - - - - - -</p>
+        ${[
+          ["Subtotal", `S/ ${orderData?.total.toFixed(2)}`],
+          ["IGV (18%)", `S/ ${(orderData?.total * 0.18).toFixed(2)}`],
+          ["Descuento", "S/ 0.00"],
+          ["Envío", "GRATIS"],
+        ].map(([k,v]) => `<div class="row"><span class="label">${k}</span><span class="bold">${v}</span></div>`).join("")}
+        <p class="sep-eq" style="margin:5px 0">= = = = = = = = = = = = = = =</p>
+        <div class="total-row"><span>TOTAL A PAGAR</span><span>S/ ${orderData?.total.toFixed(2)}</span></div>
+        <p class="sep-dash" style="margin:5px 0">- - - - - - - - - - - - - - -</p>
+        <p class="policy">• Cambios y devoluciones: 30 días</p>
+        <p class="policy">• Garantía de fábrica incluida</p>
+        <p class="policy">• Documento válido como comprobante</p>
+        <div class="center" style="margin-top:8px">
+          <p class="sep-star">* * * * * * * * * * * * * * *</p>
+          <p style="margin:3px 0;font-size:11px">¡Gracias por tu compra!</p>
+          <p class="small">Vuelva pronto — TechVault</p>
+          <p class="small" style="margin-top:3px">ID: ${orderData?.id}</p>
+          <p class="sep-star" style="margin-top:4px">* * * * * * * * * * * * * * *</p>
+        </div>
+      </body></html>
+    `);
+    win.document.close();
+    win.focus();
+    setTimeout(() => { win.print(); win.close(); }, 400);
   };
 
   return (
-    <div className="flex min-h-screen bg-[#f5f7fb] dark:bg-[#0f172a] text-slate-900 dark:text-white">
+    <div style={{ display: "flex", minHeight: "100vh", background: "#0f172a", color: "#f1f5f9" }}>
       <Sidebar />
-      
-      <div className="flex-1 p-6 lg:p-10">
-        <h1 className="text-3xl font-bold mb-8">Tu Carrito de Compras</h1>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-6">
-            
-            {/* STEP 1 */}
-            {step === 1 && (
-              <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-sm">
-                <h2 className="text-xl font-semibold mb-4 text-blue-600">1. Revisa tus productos</h2>
+      <div style={{ flex: 1, padding: "2.5rem 2rem", overflowY: "auto" }}>
+        {step !== 3 && (
+          <>
+            <h1 style={{ fontSize: "1.8rem", fontWeight: 800, color: "#f1f5f9", marginBottom: "0.25rem" }}>
+              Carrito de Compras
+            </h1>
+            <p style={{ color: "#64748b", marginBottom: "2rem", fontSize: "0.95rem" }}>
+              {cart.length} {cart.length === 1 ? "producto" : "productos"} en tu carrito
+            </p>
+          </>
+        )}
 
-                {cart.length === 0 ? (
-                  <p className="text-slate-500">El carrito está vacío.</p>
-                ) : (
-                  cart.map((item) => (
-                    <div key={item.id} className="flex items-center justify-between border-b dark:border-slate-700 py-4">
-                      <div className="flex items-center gap-4">
-                        <div className="w-16 h-16 bg-slate-100 dark:bg-slate-700 rounded-lg" />
-                        <div>
-                          <p className="font-bold">{item.name}</p>
-                          <p className="text-sm text-slate-500">S/ {item.price}</p>
-                        </div>
-                      </div>
-
-                      <button 
-                        onClick={() => removeItem(item.id)}
-                        className="text-red-500 hover:bg-red-50 p-2 rounded-full"
-                      >
-                        <TrashIcon className="h-5 w-5"/>
-                      </button>
-                    </div>
-                  ))
-                )}
-
-                <button 
-                  onClick={() => setStep(2)} 
-                  disabled={cart.length === 0} 
-                  className="w-full mt-6 bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 disabled:opacity-50"
-                >
-                  Continuar al Pago
-                </button>
+        {step === 3 ? (
+          <div style={{ maxWidth: "420px", margin: "0 auto" }}>
+            {/* Confirmación */}
+            <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "2rem" }}>
+              <CheckCircleIcon style={{ width: "48px", height: "48px", color: "#10b981", flexShrink: 0 }} />
+              <div>
+                <h2 style={{ fontSize: "1.6rem", fontWeight: 800, marginBottom: "0.2rem" }}>¡Pedido Registrado!</h2>
+                <p style={{ color: "#64748b", fontSize: "0.9rem" }}>Tu pedido está en revisión o pagado según el método elegido.</p>
               </div>
-            )}
+            </div>
 
-            {/* STEP 2 */}
-            {step === 2 && (
-              <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-sm space-y-6">
-                <h2 className="text-xl font-semibold text-blue-600">2. Método de pago</h2>
-                
-                {/* TARJETA */}
-                <div 
-                  onClick={() => setPaymentMethod("mercado-pago")}
-                  className={`p-4 border-2 rounded-2xl cursor-pointer ${paymentMethod === 'mercado-pago' ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-slate-200 dark:border-slate-700'}`}
-                >
-                  <div className="flex items-center gap-3">
-                    <CreditCardIcon className="h-6 w-6 text-blue-500" />
-                    <p className="font-bold">Tarjeta Visa / Mercado Pago</p>
-                  </div>
-                </div>
-
-                {paymentMethod === "mercado-pago" && (
-                  <div className="space-y-3">
-                    <input placeholder="Número de tarjeta" className="w-full p-3 rounded-lg bg-slate-100 dark:bg-slate-700"
-                      onChange={(e)=>setCardData({...cardData, number:e.target.value})}/>
-                    <input placeholder="Nombre del titular" className="w-full p-3 rounded-lg bg-slate-100 dark:bg-slate-700"
-                      onChange={(e)=>setCardData({...cardData, name:e.target.value})}/>
-                    <div className="flex gap-3">
-                      <input placeholder="MM/YY" className="w-1/2 p-3 rounded-lg bg-slate-100 dark:bg-slate-700"
-                        onChange={(e)=>setCardData({...cardData, date:e.target.value})}/>
-                      <input placeholder="CVV" className="w-1/2 p-3 rounded-lg bg-slate-100 dark:bg-slate-700"
-                        onChange={(e)=>setCardData({...cardData, cvv:e.target.value})}/>
-                    </div>
-                  </div>
-                )}
-
-                {/* YAPE */}
-                <div onClick={() => setPaymentMethod("yape")} className="p-4 border-2 rounded-2xl cursor-pointer">
-                  <QrCodeIcon className="h-6 w-6 text-purple-500" />
-                  <p className="font-bold">Yape</p>
-                </div>
-
-                {/* BANCO */}
-                <div onClick={() => setPaymentMethod("banco")} className="p-4 border-2 rounded-2xl cursor-pointer">
-                  <BanknotesIcon className="h-6 w-6 text-orange-500" />
-                  <p className="font-bold">BCP / Scotiabank</p>
-                </div>
-
-                {/* VOUCHER PARA YAPE Y BANCO */}
-                {(paymentMethod === "yape" || paymentMethod === "banco") && (
-                  <div className="bg-slate-100 dark:bg-slate-900 p-4 rounded-xl">
-                    <p className="font-bold mb-2">Sube tu voucher</p>
-                    <input 
-                      type="file" 
-                      accept="image/*"
-                      onChange={(e)=>setVoucher(e.target.files[0])}
-                    />
-                  </div>
-                )}
-
-                <div className="flex gap-4 pt-4">
-                  <button onClick={() => setStep(1)} className="flex-1">Regresar</button>
-                  <button onClick={handleFinishPayment} className="flex-[2] bg-green-600 text-white py-3 rounded-xl">
-                    Confirmar Pago S/ {total}
+            {/* Ticket estilo supermercado */}
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: "1.5rem" }}>
+              <div style={{ width: "100%", maxWidth: "420px", background: "#0d1f3c", borderRadius: "12px", border: "1px solid #1e3a5f", overflow: "hidden" }}>
+                {/* Barra superior */}
+                <div style={{ background: "#0a1628", padding: "0.75rem 1.25rem", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #1e3a5f" }}>
+                  <span style={{ fontWeight: 700, color: "#60a5fa", fontSize: "0.9rem" }}>🧾 Ticket de Compra</span>
+                  <button onClick={handlePrint}
+                    style={{ display: "flex", alignItems: "center", gap: "0.35rem", padding: "0.4rem 0.85rem", borderRadius: "7px", border: "1px solid #1e3a5f", background: "transparent", color: "#93c5fd", cursor: "pointer", fontWeight: 600, fontSize: "0.78rem" }}>
+                    <PrinterIcon style={{ width: "14px", height: "14px" }} />
+                    Imprimir
                   </button>
                 </div>
-              </div>
-            )}
 
-            {/* STEP 3 */}
-            {step === 3 && (
-              <div className="bg-white dark:bg-slate-800 rounded-3xl p-10 text-center">
-                <CheckCircleIcon className="h-20 w-20 text-green-500 mx-auto mb-4" />
-                <h2 className="text-2xl font-bold mb-2">¡Pedido Registrado!</h2>
-                <p className="text-slate-500">Tu pedido está en revisión o pagado según el método.</p>
+                {/* Cuerpo del ticket */}
+                <div ref={ticketRef} style={{ padding: "1.25rem 1.5rem", fontFamily: "'Courier New', monospace" }}>
+
+                  {/* Cabecera */}
+                  <div style={{ textAlign: "center", marginBottom: "0.75rem" }}>
+                    <p style={{ fontSize: "0.7rem", color: "#475569", letterSpacing: "2px" }}>* * * * * * * * * * * * * * * * * *</p>
+                    <p style={{ fontSize: "1.1rem", fontWeight: 900, color: "#60a5fa", letterSpacing: "3px", margin: "0.3rem 0" }}>TECHVAULT</p>
+                    <p style={{ fontSize: "0.7rem", color: "#64748b" }}>Sistema de Gestión Tecnológica</p>
+                    <p style={{ fontSize: "0.68rem", color: "#475569" }}>www.techvault.com | soporte@techvault.com</p>
+                    <p style={{ fontSize: "0.68rem", color: "#475569" }}>Lima, Perú | Tel: +51 999 999 999</p>
+                    <p style={{ fontSize: "0.7rem", color: "#475569", letterSpacing: "2px", marginTop: "0.3rem" }}>- - - - - - - - - - - - - - - - - -</p>
+                  </div>
+
+                  {/* Info pedido */}
+                  <div style={{ marginBottom: "0.6rem" }}>
+                    <p style={{ fontSize: "0.65rem", color: "#64748b", letterSpacing: "1.5px", marginBottom: "0.4rem" }}>COMPROBANTE DE VENTA</p>
+                    {[
+                      ["N° Pedido",   orderData?.orderId],
+                      ["Fecha",       orderData?.date],
+                      ["Hora",        orderData?.time],
+                      ["Cajero",      "Sistema Automático"],
+                      ["Cliente",     orderData?.clientName],
+                      ["Pago",        PAYMENT_METHODS.find(m => m.id === orderData?.paymentMethod)?.label || orderData?.paymentMethod],
+                      ["Estado",      orderData?.status === "pagado" ? "PAGADO ✓" : "EN REVISIÓN"],
+                    ].map(([k, v]) => (
+                      <div key={k} style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.18rem" }}>
+                        <span style={{ fontSize: "0.72rem", color: "#94a3b8" }}>{k}</span>
+                        <span style={{ fontSize: "0.72rem", color: "#f1f5f9", fontWeight: 700 }}>{v}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <p style={{ fontSize: "0.65rem", color: "#334155", letterSpacing: "1px", margin: "0.5rem 0" }}>- - - - - - - - - - - - - - - - - -</p>
+
+                  {/* Encabezado columnas */}
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.3rem" }}>
+                    <span style={{ fontSize: "0.65rem", color: "#64748b", letterSpacing: "1px" }}>DESCRIPCIÓN</span>
+                    <span style={{ fontSize: "0.65rem", color: "#64748b", letterSpacing: "1px" }}>IMPORTE</span>
+                  </div>
+
+                  {/* Productos */}
+                  {orderData?.products.map((item, idx) => {
+                    const nombre = item.nombre || item.name;
+                    const precio = item.precio || item.price;
+                    const cantidad = item.cantidad || item.quantity || 1;
+                    return (
+                      <div key={item.id} style={{ marginBottom: "0.5rem" }}>
+                        <p style={{ fontSize: "0.75rem", fontWeight: 700, color: "#f1f5f9", marginBottom: "0.1rem" }}>
+                          {String(idx + 1).padStart(2, "0")}. {nombre}
+                        </p>
+                        <div style={{ display: "flex", justifyContent: "space-between" }}>
+                          <span style={{ fontSize: "0.68rem", color: "#64748b" }}>
+                            {cantidad} und x S/{precio.toFixed(2)}
+                          </span>
+                          <span style={{ fontSize: "0.72rem", color: "#3b82f6", fontWeight: 700 }}>
+                            S/ {(precio * cantidad).toFixed(2)}
+                          </span>
+                        </div>
+                        {item.categoria && (
+                          <p style={{ fontSize: "0.62rem", color: "#475569" }}>Cat: {item.categoria}</p>
+                        )}
+                      </div>
+                    );
+                  })}
+
+                  <p style={{ fontSize: "0.65rem", color: "#334155", letterSpacing: "1px", margin: "0.5rem 0" }}>- - - - - - - - - - - - - - - - - -</p>
+
+                  {/* Totales */}
+                  {[
+                    ["Subtotal",          `S/ ${orderData?.total.toFixed(2)}`,  "#94a3b8"],
+                    ["IGV (18%)",         `S/ ${(orderData?.total * 0.18).toFixed(2)}`, "#94a3b8"],
+                    ["Descuento",         "S/ 0.00",                            "#94a3b8"],
+                    ["Envío",             "GRATIS",                             "#10b981"],
+                  ].map(([k, v, c]) => (
+                    <div key={k} style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.2rem" }}>
+                      <span style={{ fontSize: "0.72rem", color: "#94a3b8" }}>{k}</span>
+                      <span style={{ fontSize: "0.72rem", color: c, fontWeight: 600 }}>{v}</span>
+                    </div>
+                  ))}
+
+                  <p style={{ fontSize: "0.65rem", color: "#334155", letterSpacing: "1px", margin: "0.4rem 0" }}>= = = = = = = = = = = = = = = = = =</p>
+
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem" }}>
+                    <span style={{ fontSize: "0.85rem", fontWeight: 900, color: "#f1f5f9" }}>TOTAL A PAGAR</span>
+                    <span style={{ fontSize: "0.9rem", fontWeight: 900, color: "#3b82f6" }}>S/ {orderData?.total.toFixed(2)}</span>
+                  </div>
+
+                  {/* Efectivo / vuelto si aplica */}
+                  {orderData?.paymentMethod === "tarjeta" && (
+                    <div style={{ background: "rgba(37,99,235,0.08)", borderRadius: "6px", padding: "0.4rem 0.6rem", marginBottom: "0.5rem", border: "1px solid #1e3a5f" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between" }}>
+                        <span style={{ fontSize: "0.68rem", color: "#94a3b8" }}>Pagado con tarjeta</span>
+                        <span style={{ fontSize: "0.68rem", color: "#f1f5f9", fontWeight: 700 }}>S/ {orderData?.total.toFixed(2)}</span>
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between" }}>
+                        <span style={{ fontSize: "0.68rem", color: "#94a3b8" }}>Vuelto</span>
+                        <span style={{ fontSize: "0.68rem", color: "#f1f5f9", fontWeight: 700 }}>S/ 0.00</span>
+                      </div>
+                    </div>
+                  )}
+
+                  <p style={{ fontSize: "0.65rem", color: "#334155", letterSpacing: "1px", margin: "0.4rem 0" }}>- - - - - - - - - - - - - - - - - -</p>
+
+                  {/* Políticas */}
+                  <div style={{ marginBottom: "0.5rem" }}>
+                    <p style={{ fontSize: "0.62rem", color: "#475569", marginBottom: "0.15rem" }}>• Cambios y devoluciones: 30 días</p>
+                    <p style={{ fontSize: "0.62rem", color: "#475569", marginBottom: "0.15rem" }}>• Garantía de fábrica incluida</p>
+                    <p style={{ fontSize: "0.62rem", color: "#475569" }}>• Documento válido como comprobante</p>
+                  </div>
+
+                  {/* Footer */}
+                  <div style={{ textAlign: "center", marginTop: "0.5rem" }}>
+                    <p style={{ fontSize: "0.7rem", color: "#475569", letterSpacing: "2px" }}>* * * * * * * * * * * * * * * * * *</p>
+                    <p style={{ fontSize: "0.72rem", color: "#64748b", margin: "0.3rem 0" }}>¡Gracias por tu compra!</p>
+                    <p style={{ fontSize: "0.68rem", color: "#475569" }}>Vuelva pronto — TechVault</p>
+                    <p style={{ fontSize: "0.62rem", color: "#334155", marginTop: "0.3rem" }}>ID: {orderData?.id}</p>
+                    <p style={{ fontSize: "0.7rem", color: "#475569", letterSpacing: "2px", marginTop: "0.3rem" }}>* * * * * * * * * * * * * * * * * *</p>
+                  </div>
+                </div>
               </div>
-            )}
+            </div>
+
+            <div style={{ display: "flex", gap: "1rem", justifyContent: "center" }}>
+              <button onClick={() => navigate("/catalogo")}
+                style={{ padding: "0.85rem 2rem", borderRadius: "12px", border: "none", background: "linear-gradient(135deg,#1e3a5f,#2563eb)", color: "#fff", fontWeight: 700, cursor: "pointer", fontSize: "1rem" }}>
+                Seguir comprando
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: "1.5rem", alignItems: "start" }}>
+
+            {/* ── Columna izquierda ── */}
+            <div>
+              {step === 1 && (
+                <>
+                  {cart.length === 0 ? (
+                    <div style={{ background: "#0d1f3c", borderRadius: "16px", padding: "3rem", textAlign: "center", border: "1px solid #1e3a5f" }}>
+                      <p style={{ color: "#64748b", fontSize: "1.1rem" }}>Tu carrito está vacío.</p>
+                      <button onClick={() => navigate("/catalogo")}
+                        style={{ marginTop: "1.25rem", padding: "0.75rem 1.75rem", borderRadius: "10px", border: "none", background: "linear-gradient(135deg,#1e3a5f,#2563eb)", color: "#fff", fontWeight: 700, cursor: "pointer" }}>
+                        Ver catálogo
+                      </button>
+                    </div>
+                  ) : (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                      {cart.map((item) => (
+                        <CartItem key={item.id} item={item} onRemove={removeItem} onChangeQty={changeQty} />
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+
+              {step === 2 && (
+                <div style={{ background: "#0d1f3c", borderRadius: "16px", padding: "1.75rem", border: "1px solid #1e3a5f", display: "flex", flexDirection: "column", gap: "1rem" }}>
+                  <h2 style={{ fontWeight: 700, color: "#60a5fa", fontSize: "1.1rem", marginBottom: "0.25rem" }}>Método de pago</h2>
+
+                  {PAYMENT_METHODS.map((m) => (
+                    <div key={m.id} onClick={() => setPaymentMethod(m.id)}
+                      style={{ padding: "0.85rem 1.25rem", border: `2px solid ${paymentMethod === m.id ? "#2563eb" : "#1e3a5f"}`, borderRadius: "12px", cursor: "pointer", background: paymentMethod === m.id ? "rgba(37,99,235,0.12)" : "transparent", display: "flex", alignItems: "center", gap: "0.85rem", transition: "all 0.15s" }}>
+                      <img src={m.img} alt={m.label}
+                        style={{ height: "28px", width: "auto", maxWidth: "60px", objectFit: "contain", borderRadius: "4px" }} />
+                      <span style={{ fontWeight: 600, color: "#f1f5f9" }}>{m.label}</span>
+                    </div>
+                  ))}
+
+                  {paymentMethod === "tarjeta" && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", marginTop: "0.25rem" }}>
+                      {/* Número de tarjeta: 16 dígitos con guiones XXXX-XXXX-XXXX-XXXX */}
+                      <input
+                        placeholder="0000-0000-0000-0000"
+                        value={cardData.number}
+                        maxLength={19}
+                        onChange={(e) => {
+                          const digits = e.target.value.replace(/\D/g, "").slice(0, 16);
+                          const formatted = digits.replace(/(.{4})/g, "$1-").replace(/-$/, "");
+                          setCardData({ ...cardData, number: formatted });
+                        }}
+                        style={{ padding: "0.75rem 1rem", borderRadius: "10px", background: "#0f172a", border: "1px solid #1e3a5f", color: "#f1f5f9", outline: "none", fontSize: "0.9rem", letterSpacing: "0.1em" }}
+                      />
+                      {/* Nombre del titular */}
+                      <input
+                        placeholder="Nombre del titular"
+                        value={cardData.name}
+                        onChange={(e) => setCardData({ ...cardData, name: e.target.value })}
+                        style={{ padding: "0.75rem 1rem", borderRadius: "10px", background: "#0f172a", border: "1px solid #1e3a5f", color: "#f1f5f9", outline: "none", fontSize: "0.9rem" }}
+                      />
+                      <div style={{ display: "flex", gap: "0.75rem" }}>
+                        {/* Fecha MM/YY */}
+                        <input
+                          placeholder="MM/YY"
+                          value={cardData.date}
+                          maxLength={5}
+                          onChange={(e) => {
+                            const digits = e.target.value.replace(/\D/g, "").slice(0, 4);
+                            const formatted = digits.length > 2 ? `${digits.slice(0,2)}/${digits.slice(2)}` : digits;
+                            setCardData({ ...cardData, date: formatted });
+                          }}
+                          style={{ flex: 1, padding: "0.75rem 1rem", borderRadius: "10px", background: "#0f172a", border: "1px solid #1e3a5f", color: "#f1f5f9", outline: "none", fontSize: "0.9rem" }}
+                        />
+                        {/* CVV: 3 dígitos */}
+                        <input
+                          placeholder="CVV"
+                          value={cardData.cvv}
+                          maxLength={3}
+                          onChange={(e) => {
+                            const digits = e.target.value.replace(/\D/g, "").slice(0, 3);
+                            setCardData({ ...cardData, cvv: digits });
+                          }}
+                          style={{ flex: 1, padding: "0.75rem 1rem", borderRadius: "10px", background: "#0f172a", border: "1px solid #1e3a5f", color: "#f1f5f9", outline: "none", fontSize: "0.9rem" }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {(paymentMethod === "yape" || paymentMethod === "bcp" || paymentMethod === "scotiabank") && (
+                    <div style={{ background: "#0f172a", padding: "1rem", borderRadius: "10px", border: "1px solid #1e3a5f" }}>
+                      <p style={{ fontWeight: 600, marginBottom: "0.5rem", color: "#94a3b8", fontSize: "0.9rem" }}>Sube tu voucher de pago</p>
+                      <input type="file" accept="image/*" onChange={(e) => setVoucher(e.target.files[0])} style={{ color: "#94a3b8", fontSize: "0.85rem" }} />
+                    </div>
+                  )}
+
+                  <div style={{ display: "flex", gap: "0.75rem", marginTop: "0.5rem" }}>
+                    <button onClick={() => setStep(1)}
+                      style={{ flex: 1, padding: "0.8rem", borderRadius: "10px", border: "1px solid #1e3a5f", background: "transparent", color: "#94a3b8", cursor: "pointer", fontWeight: 600 }}>
+                      ← Regresar
+                    </button>
+                    <button onClick={handleFinishPayment}
+                      style={{ flex: 2, padding: "0.8rem", borderRadius: "10px", border: "none", background: "linear-gradient(135deg,#059669,#10b981)", color: "#fff", cursor: "pointer", fontWeight: 700, fontSize: "0.95rem" }}>
+                      Confirmar Pago — S/ {subtotal.toFixed(2)}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* ── Resumen lateral ── */}
+            <div style={{ background: "#0d1f3c", borderRadius: "16px", padding: "1.5rem", border: "1px solid #1e3a5f", position: "sticky", top: "1.5rem" }}>
+              <h3 style={{ fontWeight: 700, fontSize: "1rem", color: "#f1f5f9", marginBottom: "1.25rem" }}>Resumen del Pedido</h3>
+
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.75rem" }}>
+                <span style={{ color: "#94a3b8", fontSize: "0.9rem" }}>Subtotal</span>
+                <span style={{ color: "#f1f5f9", fontWeight: 600 }}>S/ {subtotal.toFixed(2)}</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", paddingBottom: "1rem", borderBottom: "1px solid #1e3a5f" }}>
+                <span style={{ color: "#94a3b8", fontSize: "0.9rem" }}>Envío</span>
+                <span style={{ color: "#10b981", fontWeight: 700 }}>¡GRATIS!</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", paddingTop: "1rem", marginBottom: "1.5rem" }}>
+                <span style={{ color: "#f1f5f9", fontWeight: 800, fontSize: "1rem" }}>Total</span>
+                <span style={{ color: "#3b82f6", fontWeight: 900, fontSize: "1.2rem" }}>S/ {subtotal.toFixed(2)}</span>
+              </div>
+
+              {step === 1 ? (
+                <button onClick={() => setStep(2)} disabled={cart.length === 0}
+                  style={{ width: "100%", padding: "0.9rem", borderRadius: "12px", border: "none", background: cart.length === 0 ? "#1e3a5f" : "linear-gradient(135deg,#1e3a5f,#2563eb)", color: cart.length === 0 ? "#475569" : "#fff", fontWeight: 700, cursor: cart.length === 0 ? "not-allowed" : "pointer", fontSize: "0.95rem", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem" }}>
+                  <CreditCardIcon style={{ width: "18px", height: "18px" }} />
+                  Proceder al Pago
+                </button>
+              ) : (
+                <button onClick={handleFinishPayment}
+                  style={{ width: "100%", padding: "0.9rem", borderRadius: "12px", border: "none", background: "linear-gradient(135deg,#059669,#10b981)", color: "#fff", fontWeight: 700, cursor: "pointer", fontSize: "0.95rem" }}>
+                  Confirmar Pago
+                </button>
+              )}
+
+              <div style={{ marginTop: "1.25rem", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                {["Envío seguro y protegido", "30 días de garantía", "Pago 100% seguro"].map((txt) => (
+                  <div key={txt} style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                    <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#10b981", flexShrink: 0 }}></span>
+                    <span style={{ color: "#64748b", fontSize: "0.82rem" }}>{txt}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function CartItem({ item, onRemove, onChangeQty }) {
+  const precio = item.precio || item.price || 0;
+  const cantidad = item.cantidad || item.quantity || 1;
+  const nombre = item.nombre || item.name || "";
+  const stock = item.stock || 0;
+
+  return (
+    <div style={{ background: "#0d1f3c", borderRadius: "16px", padding: "1.25rem", border: "1px solid #1e3a5f", display: "flex", gap: "1rem", alignItems: "center" }}>
+      <div style={{ width: "80px", height: "80px", borderRadius: "10px", overflow: "hidden", flexShrink: 0, background: "#1e3a5f" }}>
+        {item.imagen && <img src={item.imagen} alt={nombre} style={{ width: "100%", height: "100%", objectFit: "cover" }} />}
+      </div>
+
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+          <div>
+            <p style={{ fontWeight: 700, color: "#f1f5f9", fontSize: "1rem", marginBottom: "0.2rem" }}>{nombre}</p>
+            <p style={{ color: "#64748b", fontSize: "0.82rem" }}>Stock disponible: {stock}</p>
+          </div>
+          <button onClick={() => onRemove(item.id)}
+            style={{ background: "none", border: "none", cursor: "pointer", color: "#ef4444", padding: "0.25rem", flexShrink: 0 }}>
+            <TrashIcon style={{ width: "20px", height: "20px" }} />
+          </button>
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "0.75rem" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+            <button onClick={() => onChangeQty(item.id, -1)}
+              style={{ width: "32px", height: "32px", borderRadius: "50%", border: "1px solid #334155", background: "#0f172a", color: "#f1f5f9", cursor: "pointer", fontWeight: 700, fontSize: "1rem", display: "flex", alignItems: "center", justifyContent: "center" }}>−</button>
+            <span style={{ color: "#f1f5f9", fontWeight: 700, minWidth: "20px", textAlign: "center" }}>{cantidad}</span>
+            <button onClick={() => onChangeQty(item.id, 1)}
+              style={{ width: "32px", height: "32px", borderRadius: "50%", border: "1px solid #334155", background: "#0f172a", color: "#f1f5f9", cursor: "pointer", fontWeight: 700, fontSize: "1rem", display: "flex", alignItems: "center", justifyContent: "center" }}>+</button>
           </div>
 
-          {/* RESUMEN */}
-          <div>
-            <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-sm">
-              <h2 className="text-lg font-bold mb-4">Resumen</h2>
-              <p>Total: S/ {total}</p>
-            </div>
+          <div style={{ textAlign: "right" }}>
+            <p style={{ color: "#3b82f6", fontWeight: 800, fontSize: "1rem" }}>S/ {(precio * cantidad).toFixed(2)}</p>
+            <p style={{ color: "#64748b", fontSize: "0.78rem" }}>S/ {precio.toFixed(2)} c/u</p>
           </div>
         </div>
       </div>
     </div>
-  )};
+  );
+}

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import productos from "../data/productos.json";
+import GradientText from "../components/GradientText";
 
 const CATEGORIAS = ["Todos", "Laptops", "PCs", "Mouse", "Monitores", "Accesorios", "Almacenamiento"];
 
@@ -27,7 +28,7 @@ function getPalette(dark) {
   };
 }
 
-function ProductCard({ producto, onVerDetalle, onAgregar, p }) {
+function ProductCard({ producto, onVerDetalle, onAgregar, onToggleFav, esFavorito, p }) {
   const [hovered, setHovered] = useState(false);
   return (
     <div
@@ -42,8 +43,9 @@ function ProductCard({ producto, onVerDetalle, onAgregar, p }) {
             {producto.badge}
           </span>
         )}
+        {/* Lupa */}
         <div style={{
-          position: "absolute", top: "10px", right: "10px",
+          position: "absolute", top: "10px", right: "52px",
           width: "36px", height: "36px", borderRadius: "8px",
           background: "rgba(255,255,255,0.92)",
           display: "flex", alignItems: "center", justifyContent: "center",
@@ -56,6 +58,28 @@ function ProductCard({ producto, onVerDetalle, onAgregar, p }) {
             <circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="22" y2="22"/>
           </svg>
         </div>
+        {/* Corazón */}
+        <button
+          onClick={(e) => { e.stopPropagation(); onToggleFav(producto); }}
+          style={{
+            position: "absolute", top: "10px", right: "10px",
+            width: "36px", height: "36px", borderRadius: "8px",
+            background: esFavorito ? "rgba(239,68,68,0.15)" : "rgba(255,255,255,0.92)",
+            border: "none", display: "flex", alignItems: "center", justifyContent: "center",
+            cursor: "pointer", zIndex: 3,
+            boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+            transition: "background 0.2s, transform 0.15s",
+          }}
+          onMouseEnter={e => e.currentTarget.style.transform = "scale(1.15)"}
+          onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}
+        >
+          <svg width="17" height="17" viewBox="0 0 24 24"
+            fill={esFavorito ? "#ef4444" : "none"}
+            stroke={esFavorito ? "#ef4444" : "#334155"}
+            strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+          </svg>
+        </button>
       </div>
 
       <div style={{ padding: "1rem 1.1rem 1.1rem" }}>
@@ -89,16 +113,29 @@ export default function Catalogo() {
   const [busqueda, setBusqueda] = useState("");
   const [categoriaActiva, setCategoriaActiva] = useState("Todos");
   const [productoModal, setProductoModal] = useState(null);
-  const [mostrarCarrito, setMostrarCarrito] = useState(false);
+  const [paginaActual, setPaginaActual] = useState(1);
+  const PRODUCTOS_POR_PAGINA = 8;
 
-  // Carrito sincronizado con localStorage para que Carrito.jsx lo lea
+  // Carrito sincronizado con localStorage
   const [carrito, setCarrito] = useState(() => {
     try { return JSON.parse(localStorage.getItem("techvault_cart") || "[]"); } catch { return []; }
   });
 
-  useEffect(() => {
-    localStorage.setItem("techvault_cart", JSON.stringify(carrito));
-  }, [carrito]);
+  // Favoritos
+  const [favoritos, setFavoritos] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("techvault_favoritos") || "[]"); } catch { return []; }
+  });
+
+  const toggleFavorito = (producto) => {
+    setFavoritos((prev) => {
+      const existe = prev.find((x) => x.id === producto.id);
+      const updated = existe ? prev.filter((x) => x.id !== producto.id) : [...prev, producto];
+      localStorage.setItem("techvault_favoritos", JSON.stringify(updated));
+      window.dispatchEvent(new Event("favoritos_updated"));
+      return updated;
+    });
+  };
+
 
   useEffect(() => {
     const handler = (e) => { const t = e.detail?.theme; if (t) setIsDark(t === "dark"); };
@@ -114,21 +151,28 @@ export default function Catalogo() {
     return coincideCategoria && coincideBusqueda;
   });
 
+  const totalPaginas = Math.ceil(productosFiltrados.length / PRODUCTOS_POR_PAGINA);
+  const productosPaginados = productosFiltrados.slice(
+    (paginaActual - 1) * PRODUCTOS_POR_PAGINA,
+    paginaActual * PRODUCTOS_POR_PAGINA
+  );
+
+  // Reset página al cambiar filtros
+  const handleCategoria = (cat) => { setCategoriaActiva(cat); setPaginaActual(1); };
+  const handleBusqueda = (val) => { setBusqueda(val); setPaginaActual(1); };
+
   const agregarAlCarrito = (producto) => {
     setCarrito((prev) => {
       const existe = prev.find((x) => x.id === producto.id);
-      if (existe) return prev.map((x) => x.id === producto.id ? { ...x, cantidad: x.cantidad + 1, quantity: x.cantidad + 1 } : x);
-      return [...prev, { ...producto, cantidad: 1, quantity: 1, name: producto.nombre, price: producto.precio }];
+      const updated = existe
+        ? prev.map((x) => x.id === producto.id ? { ...x, cantidad: x.cantidad + 1, quantity: x.cantidad + 1 } : x)
+        : [...prev, { ...producto, cantidad: 1, quantity: 1, name: producto.nombre, price: producto.precio }];
+      localStorage.setItem("techvault_cart", JSON.stringify(updated));
+      window.dispatchEvent(new Event("cart_updated"));
+      return updated;
     });
     setProductoModal(null);
   };
-
-  const quitarDelCarrito = (id) => setCarrito((prev) => prev.filter((x) => x.id !== id));
-  const cambiarCantidad = (id, delta) => setCarrito((prev) =>
-    prev.map((x) => x.id === id ? { ...x, cantidad: Math.max(1, x.cantidad + delta), quantity: Math.max(1, x.cantidad + delta) } : x)
-  );
-  const totalCarrito = carrito.reduce((acc, x) => acc + x.precio * x.cantidad, 0);
-  const totalItems = carrito.reduce((acc, x) => acc + x.cantidad, 0);
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: p.pageBg }}>
@@ -137,35 +181,29 @@ export default function Catalogo() {
       <main style={{ flex: 1, padding: "2rem", color: p.text, overflowY: "auto" }}>
         {/* Header */}
         <div style={{ marginBottom: "2rem" }}>
-          <h1 style={{ fontSize: "2rem", fontWeight: 800, background: "linear-gradient(90deg,#6366f1,#a78bfa)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Catálogo de Productos</h1>
+          <GradientText
+            colors={["#6366f1", "#a78bfa", "#60a5fa", "#6366f1"]}
+            animationSpeed={4}
+            showBorder={false}
+            className="catalogo-title"
+          >
+            <span style={{ fontSize: "2rem", fontWeight: 800 }}>Catálogo de Productos</span>
+          </GradientText>
           <p style={{ color: p.textMuted, marginTop: "0.25rem" }}>Encuentra los mejores productos tecnológicos</p>
         </div>
 
-        {/* Búsqueda + botón carrito */}
+        {/* Búsqueda */}
         <div style={{ display: "flex", gap: "1rem", marginBottom: "1.5rem", alignItems: "center", flexWrap: "wrap" }}>
           <div style={{ position: "relative", flex: 1, minWidth: "200px" }}>
-            <input value={busqueda} onChange={(e) => setBusqueda(e.target.value)} placeholder="Buscar productos..."
+            <input value={busqueda} onChange={(e) => handleBusqueda(e.target.value)} placeholder="Buscar productos..."
               style={{ width: "100%", padding: "0.75rem 1rem", borderRadius: "12px", border: `1px solid ${p.inputBorder}`, background: p.inputBg, color: p.text, fontSize: "0.95rem", outline: "none", boxSizing: "border-box" }} />
           </div>
-
-          <button onClick={() => setMostrarCarrito(true)}
-            style={{ position: "relative", width: "48px", height: "48px", borderRadius: "12px", background: "transparent", border: `1px solid ${p.cardBorder}`, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: p.text, transition: "background 0.2s" }}
-            onMouseEnter={e => e.currentTarget.style.background = p.filterInactive}
-            onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
-              <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
-            </svg>
-            {totalItems > 0 && (
-              <span style={{ position: "absolute", top: "-6px", right: "-6px", background: "#6366f1", borderRadius: "50%", width: "20px", height: "20px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.7rem", fontWeight: 800, color: "#fff" }}>{totalItems}</span>
-            )}
-          </button>
         </div>
 
         {/* Filtros */}
         <div style={{ display: "flex", gap: "0.5rem", marginBottom: "2rem", flexWrap: "wrap" }}>
           {CATEGORIAS.map((cat) => (
-            <button key={cat} onClick={() => setCategoriaActiva(cat)}
+            <button key={cat} onClick={() => handleCategoria(cat)}
               style={{ padding: "0.5rem 1.1rem", borderRadius: "20px", border: "none", cursor: "pointer", fontWeight: 600, fontSize: "0.85rem", transition: "all 0.2s", background: categoriaActiva === cat ? "linear-gradient(135deg,#6366f1,#8b5cf6)" : p.filterInactive, color: categoriaActiva === cat ? "#fff" : p.filterTextInactive }}>
               {cat}
             </button>
@@ -174,8 +212,8 @@ export default function Catalogo() {
 
         {/* Grid de productos */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "1.5rem" }}>
-          {productosFiltrados.map((producto) => (
-            <ProductCard key={producto.id} producto={producto} onVerDetalle={setProductoModal} onAgregar={agregarAlCarrito} p={p} />
+          {productosPaginados.map((producto) => (
+            <ProductCard key={producto.id} producto={producto} onVerDetalle={setProductoModal} onAgregar={agregarAlCarrito} onToggleFav={toggleFavorito} esFavorito={favoritos.some((f) => f.id === producto.id)} p={p} />
           ))}
         </div>
         {productosFiltrados.length === 0 && (
@@ -184,58 +222,82 @@ export default function Catalogo() {
             <p style={{ marginTop: "1rem", fontSize: "1.1rem" }}>No se encontraron productos</p>
           </div>
         )}
+
+        {/* Paginación */}
+        {totalPaginas > 1 && (
+          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "0.4rem", marginTop: "2.5rem", flexWrap: "wrap" }}>
+            <button
+              onClick={() => setPaginaActual((p) => Math.max(1, p - 1))}
+              disabled={paginaActual === 1}
+              style={{ padding: "0.45rem 0.9rem", borderRadius: "8px", border: `1px solid #1e3a5f`, background: "transparent", color: paginaActual === 1 ? "#334155" : "#93c5fd", cursor: paginaActual === 1 ? "not-allowed" : "pointer", fontWeight: 600, fontSize: "0.9rem" }}>
+              ‹
+            </button>
+            {Array.from({ length: totalPaginas }, (_, i) => i + 1).map((num) => (
+              <button key={num} onClick={() => setPaginaActual(num)}
+                style={{ width: "36px", height: "36px", borderRadius: "8px", border: `1px solid ${paginaActual === num ? "#2563eb" : "#1e3a5f"}`, background: paginaActual === num ? "linear-gradient(135deg,#1e3a5f,#2563eb)" : "transparent", color: paginaActual === num ? "#fff" : "#93c5fd", cursor: "pointer", fontWeight: 700, fontSize: "0.9rem" }}>
+                {num}
+              </button>
+            ))}
+            <button
+              onClick={() => setPaginaActual((p) => Math.min(totalPaginas, p + 1))}
+              disabled={paginaActual === totalPaginas}
+              style={{ padding: "0.45rem 0.9rem", borderRadius: "8px", border: `1px solid #1e3a5f`, background: "transparent", color: paginaActual === totalPaginas ? "#334155" : "#93c5fd", cursor: paginaActual === totalPaginas ? "not-allowed" : "pointer", fontWeight: 600, fontSize: "0.9rem" }}>
+              ›
+            </button>
+          </div>
+        )}
       </main>
 
       {/* ── Modal Detalles producto ── */}
       {productoModal && (
         <div onClick={() => setProductoModal(null)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: "1rem" }}>
-          <div onClick={(e) => e.stopPropagation()} style={{ background: "#ffffff", borderRadius: "16px", maxWidth: "780px", width: "100%", overflow: "hidden", boxShadow: "0 24px 60px rgba(0,0,0,0.5)", maxHeight: "90vh", overflowY: "auto" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1rem 1.5rem", borderBottom: "1px solid #e2e8f0" }}>
-              <span style={{ fontWeight: 600, color: "#1e293b", fontSize: "1rem" }}>Detalles del Producto</span>
-              <button onClick={() => setProductoModal(null)} style={{ background: "none", border: "none", fontSize: "1.3rem", cursor: "pointer", color: "#64748b", lineHeight: 1 }}>✕</button>
+          <div onClick={(e) => e.stopPropagation()} style={{ background: "#0f172a", borderRadius: "16px", maxWidth: "780px", width: "100%", overflow: "hidden", boxShadow: "0 24px 60px rgba(0,0,0,0.7)", maxHeight: "90vh", overflowY: "auto", border: "1px solid #1e3a5f" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1rem 1.5rem", borderBottom: "1px solid #1e3a5f", background: "#0d1f3c" }}>
+              <span style={{ fontWeight: 600, color: "#e2e8f0", fontSize: "1rem" }}>Detalles del Producto</span>
+              <button onClick={() => setProductoModal(null)} style={{ background: "none", border: "none", fontSize: "1.3rem", cursor: "pointer", color: "#94a3b8", lineHeight: 1 }}>✕</button>
             </div>
             <div style={{ display: "flex", gap: "2rem", padding: "1.5rem", flexWrap: "wrap" }}>
               <div style={{ flex: "0 0 auto", width: "320px", maxWidth: "100%" }}>
-                <img src={productoModal.imagen} alt={productoModal.nombre} style={{ width: "100%", height: "260px", objectFit: "cover", borderRadius: "12px" }} />
+                <img src={productoModal.imagen} alt={productoModal.nombre} style={{ width: "100%", height: "260px", objectFit: "cover", borderRadius: "12px", border: "1px solid #1e3a5f" }} />
               </div>
               <div style={{ flex: 1, minWidth: "220px" }}>
-                <h2 style={{ fontWeight: 800, fontSize: "1.4rem", color: "#1e293b", marginBottom: "0.5rem" }}>{productoModal.nombre}</h2>
+                <h2 style={{ fontWeight: 800, fontSize: "1.4rem", color: "#f1f5f9", marginBottom: "0.5rem" }}>{productoModal.nombre}</h2>
                 <div style={{ display: "flex", alignItems: "center", gap: "0.3rem", marginBottom: "1rem" }}>
                   {[1,2,3,4,5].map((i) => (
-                    <span key={i} style={{ color: i <= 4 ? "#f59e0b" : "#cbd5e1", fontSize: "1.1rem" }}>★</span>
+                    <span key={i} style={{ color: i <= 4 ? "#f59e0b" : "#334155", fontSize: "1.1rem" }}>★</span>
                   ))}
                   <span style={{ color: "#64748b", fontSize: "0.85rem", marginLeft: "4px" }}>(128 reseñas)</span>
                 </div>
-                <div style={{ background: "#f8fafc", borderRadius: "10px", padding: "0.85rem 1rem", marginBottom: "1.25rem", border: "1px solid #e2e8f0" }}>
+                <div style={{ background: "#0d1f3c", borderRadius: "10px", padding: "0.85rem 1rem", marginBottom: "1.25rem", border: "1px solid #1e3a5f" }}>
                   <div style={{ display: "flex", gap: "0.6rem", alignItems: "center", marginBottom: "0.4rem" }}>
-                    <span style={{ color: "#475569", fontWeight: 600, fontSize: "0.9rem" }}>Precio:</span>
-                    <span style={{ color: "#1e293b", fontWeight: 800, fontSize: "1.05rem" }}>S/ {productoModal.precio.toFixed(2)}</span>
+                    <span style={{ color: "#94a3b8", fontWeight: 600, fontSize: "0.9rem" }}>Precio:</span>
+                    <span style={{ color: "#f1f5f9", fontWeight: 800, fontSize: "1.05rem" }}>S/ {productoModal.precio.toFixed(2)}</span>
                     {productoModal.precioAntes && (
-                      <span style={{ fontSize: "0.85rem", color: "#94a3b8", textDecoration: "line-through" }}>S/ {productoModal.precioAntes.toFixed(2)}</span>
+                      <span style={{ fontSize: "0.85rem", color: "#64748b", textDecoration: "line-through" }}>S/ {productoModal.precioAntes.toFixed(2)}</span>
                     )}
                   </div>
                   <div style={{ display: "flex", gap: "0.6rem", alignItems: "center" }}>
-                    <span style={{ color: "#475569", fontWeight: 600, fontSize: "0.9rem" }}>Disponibilidad:</span>
-                    <span style={{ color: productoModal.stock <= 8 ? "#ef4444" : "#059669", fontWeight: 700, fontSize: "0.9rem" }}>{productoModal.stock} unidades en stock</span>
+                    <span style={{ color: "#94a3b8", fontWeight: 600, fontSize: "0.9rem" }}>Disponibilidad:</span>
+                    <span style={{ color: productoModal.stock <= 8 ? "#ef4444" : "#34d399", fontWeight: 700, fontSize: "0.9rem" }}>{productoModal.stock} unidades en stock</span>
                   </div>
                 </div>
-                <h3 style={{ fontWeight: 700, color: "#1e293b", marginBottom: "0.5rem", fontSize: "0.95rem" }}>Descripción</h3>
-                <p style={{ color: "#475569", lineHeight: 1.7, fontSize: "0.88rem", marginBottom: "1.25rem" }}>{productoModal.descripcion}</p>
-                <h3 style={{ fontWeight: 700, color: "#1e293b", marginBottom: "0.5rem", fontSize: "0.95rem" }}>Características Destacadas</h3>
+                <h3 style={{ fontWeight: 700, color: "#e2e8f0", marginBottom: "0.5rem", fontSize: "0.95rem" }}>Descripción</h3>
+                <p style={{ color: "#94a3b8", lineHeight: 1.7, fontSize: "0.88rem", marginBottom: "1.25rem" }}>{productoModal.descripcion}</p>
+                <h3 style={{ fontWeight: 700, color: "#e2e8f0", marginBottom: "0.5rem", fontSize: "0.95rem" }}>Características Destacadas</h3>
                 <ul style={{ listStyle: "none", padding: 0, margin: 0, marginBottom: "1.75rem" }}>
                   {["Alta calidad de construcción","Diseño moderno y elegante","Excelente relación calidad-precio","Garantía del fabricante","Compatible con múltiples dispositivos"].map((c) => (
-                    <li key={c} style={{ display: "flex", alignItems: "center", gap: "0.5rem", color: "#475569", fontSize: "0.88rem", marginBottom: "0.4rem" }}>
-                      <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#6366f1", flexShrink: 0 }}></span>{c}
+                    <li key={c} style={{ display: "flex", alignItems: "center", gap: "0.5rem", color: "#94a3b8", fontSize: "0.88rem", marginBottom: "0.4rem" }}>
+                      <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#3b82f6", flexShrink: 0 }}></span>{c}
                     </li>
                   ))}
                 </ul>
                 <div style={{ display: "flex", gap: "0.75rem" }}>
                   <button onClick={() => setProductoModal(null)}
-                    style={{ flex: 1, padding: "0.75rem", borderRadius: "10px", border: "1px solid #e2e8f0", background: "#fff", color: "#64748b", cursor: "pointer", fontWeight: 600, fontSize: "0.9rem" }}>
+                    style={{ flex: 1, padding: "0.75rem", borderRadius: "10px", border: "1px solid #1e3a5f", background: "transparent", color: "#94a3b8", cursor: "pointer", fontWeight: 600, fontSize: "0.9rem" }}>
                     Cerrar
                   </button>
                   <button onClick={() => agregarAlCarrito(productoModal)}
-                    style={{ flex: 2, padding: "0.75rem", borderRadius: "10px", border: "none", background: "linear-gradient(135deg,#6366f1,#8b5cf6)", color: "#fff", fontWeight: 700, cursor: "pointer", fontSize: "0.9rem" }}>
+                    style={{ flex: 2, padding: "0.75rem", borderRadius: "10px", border: "none", background: "linear-gradient(135deg,#1e3a5f,#2563eb)", color: "#fff", fontWeight: 700, cursor: "pointer", fontSize: "0.9rem" }}>
                     + Agregar al carrito
                   </button>
                 </div>
@@ -245,82 +307,6 @@ export default function Catalogo() {
         </div>
       )}
 
-      {/* ── Modal Carrito ── */}
-      {mostrarCarrito && (
-        <div onClick={() => setMostrarCarrito(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: "1rem" }}>
-          <div onClick={(e) => e.stopPropagation()}
-            style={{ background: p.pageBg, borderRadius: "16px", width: "100%", maxWidth: "900px", maxHeight: "88vh", overflow: "hidden", boxShadow: "0 24px 60px rgba(0,0,0,0.35)", display: "flex", flexDirection: "column" }}>
-
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1.25rem 1.75rem", borderBottom: `1px solid ${p.cardBorder}`, background: p.modalBg }}>
-              <h2 style={{ fontWeight: 800, fontSize: "1.2rem", color: p.text, margin: 0 }}>
-                Carro <span style={{ fontWeight: 400, color: p.textMuted, fontSize: "1rem" }}>({totalItems} {totalItems === 1 ? "producto" : "productos"})</span>
-              </h2>
-              <button onClick={() => setMostrarCarrito(false)} style={{ background: "none", border: "none", fontSize: "1.4rem", cursor: "pointer", color: p.textMuted, lineHeight: 1 }}>✕</button>
-            </div>
-
-            {carrito.length === 0 ? (
-              <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "3rem", color: p.textSub }}>
-                <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: "1rem", opacity: 0.4 }}>
-                  <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
-                  <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
-                </svg>
-                <p style={{ fontSize: "1.1rem", fontWeight: 600 }}>Tu carrito está vacío</p>
-                <p style={{ fontSize: "0.88rem", marginTop: "0.5rem" }}>Agrega productos para continuar</p>
-              </div>
-            ) : (
-              <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "row" }}>
-                <div style={{ flex: 1, overflowY: "auto", padding: "1.5rem 1.75rem", background: p.pageBg }}>
-                  {carrito.map((item) => (
-                    <div key={item.id} style={{ display: "flex", gap: "1rem", alignItems: "center", padding: "1rem", background: p.modalBg, borderRadius: "12px", border: `1px solid ${p.cardBorder}`, marginBottom: "0.75rem" }}>
-                      <img src={item.imagen} alt={item.nombre} style={{ width: "72px", height: "72px", objectFit: "cover", borderRadius: "10px", flexShrink: 0 }} />
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ fontWeight: 700, fontSize: "0.92rem", color: p.text, marginBottom: "0.2rem", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.nombre}</p>
-                        <p style={{ color: "#6366f1", fontWeight: 800, fontSize: "1rem" }}>S/ {(item.precio * item.cantidad).toFixed(2)}</p>
-                        {item.precioAntes && (
-                          <p style={{ color: p.textMuted, fontSize: "0.8rem", textDecoration: "line-through" }}>S/ {(item.precioAntes * item.cantidad).toFixed(2)}</p>
-                        )}
-                      </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexShrink: 0 }}>
-                        <button onClick={() => cambiarCantidad(item.id, -1)}
-                          style={{ width: "32px", height: "32px", borderRadius: "50%", border: `1.5px solid ${p.cardBorder}`, background: "transparent", color: p.text, cursor: "pointer", fontWeight: 700, fontSize: "1rem", display: "flex", alignItems: "center", justifyContent: "center" }}>−</button>
-                        <span style={{ color: p.text, fontWeight: 700, minWidth: "20px", textAlign: "center" }}>{item.cantidad}</span>
-                        <button onClick={() => cambiarCantidad(item.id, 1)}
-                          style={{ width: "32px", height: "32px", borderRadius: "50%", border: `1.5px solid ${p.cardBorder}`, background: "transparent", color: p.text, cursor: "pointer", fontWeight: 700, fontSize: "1rem", display: "flex", alignItems: "center", justifyContent: "center" }}>+</button>
-                        <button onClick={() => quitarDelCarrito(item.id)}
-                          style={{ width: "32px", height: "32px", borderRadius: "50%", border: "none", background: "#fee2e2", color: "#ef4444", cursor: "pointer", fontWeight: 700, fontSize: "0.9rem", display: "flex", alignItems: "center", justifyContent: "center", marginLeft: "0.25rem" }}>✕</button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div style={{ width: "300px", flexShrink: 0, background: p.modalBg, borderLeft: `1px solid ${p.cardBorder}`, padding: "1.5rem", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-                  <div>
-                    <h3 style={{ fontWeight: 800, fontSize: "1.05rem", color: p.text, marginBottom: "1.25rem" }}>Resumen de la orden</h3>
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.75rem" }}>
-                      <span style={{ color: p.textMuted, fontSize: "0.9rem" }}>Productos ({totalItems})</span>
-                      <span style={{ color: p.text, fontWeight: 600, fontSize: "0.9rem" }}>S/ {totalCarrito.toFixed(2)}</span>
-                    </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.75rem" }}>
-                      <span style={{ color: p.textMuted, fontSize: "0.9rem" }}>Envío</span>
-                      <span style={{ color: "#10b981", fontWeight: 600, fontSize: "0.9rem" }}>Gratis</span>
-                    </div>
-                    <div style={{ borderTop: `1px solid ${p.cardBorder}`, paddingTop: "0.75rem", marginTop: "0.25rem", display: "flex", justifyContent: "space-between" }}>
-                      <span style={{ color: p.text, fontWeight: 800, fontSize: "1rem" }}>Total:</span>
-                      <span style={{ color: "#6366f1", fontWeight: 900, fontSize: "1.15rem" }}>S/ {totalCarrito.toFixed(2)}</span>
-                    </div>
-                  </div>
-                  {/* ── Navega a /carrito pasando el estado por localStorage ── */}
-                  <button
-                    onClick={() => { setMostrarCarrito(false); navigate("/carrito"); }}
-                    style={{ marginTop: "1.5rem", width: "100%", padding: "0.9rem", borderRadius: "10px", border: "none", background: "#1e293b", color: "#fff", fontWeight: 800, cursor: "pointer", fontSize: "1rem", letterSpacing: "0.3px" }}>
-                    Continuar compra
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
