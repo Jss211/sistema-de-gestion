@@ -20,20 +20,20 @@ function App() {
     const savedTheme = localStorage.getItem("theme") || "dark";
     return savedTheme === "dark";
   });
-  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (user) => {
-      if (!user) { setIsAdmin(false); return; }
-      try {
-        const snap = await getDoc(doc(db, "users", user.uid));
-        if (snap.exists()) {
-          const role = (snap.data().role || "").trim().toLowerCase();
-          setIsAdmin(role === "admin");
-        }
-      } catch { setIsAdmin(false); }
-    });
-    return () => unsub();
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        document.title = "¡Vuelve como a TINDER 🔥";
+      } else {
+        document.title = "TechVault";
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, []);
 
   useEffect(() => {
