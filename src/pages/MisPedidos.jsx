@@ -69,7 +69,7 @@ export default function MisPedidos() {
 
         {/* Header */}
         <div style={{ marginBottom: "2rem" }}>
-          <h1 style={{ fontSize: "1.8rem", fontWeight: 800, background: "linear-gradient(90deg,#6366f1,#60a5fa)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+          <h1 style={{ fontSize: "1.8rem", fontWeight: 800, color: t.text }}>
             Mis Pedidos
           </h1>
           <p style={{ color: t.textSub, marginTop: "0.25rem", fontSize: "0.95rem" }}>

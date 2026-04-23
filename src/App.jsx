@@ -9,12 +9,32 @@ import MiPerfil from "./pages/MiPerfil";
 import Favoritos from "./pages/Favoritos";
 import MisPedidos from "./pages/MisPedidos";
 import Notificaciones from "./pages/Notificaciones";
+import AgregarProducto from "./pages/admin/AgregarProducto";
+import Usuarios from "./pages/admin/Usuarios";
+import { auth, db } from "./firebase";
+import { onAuthStateChanged } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
 
 function App() {
   const [darkMode, setDarkMode] = useState(() => {
     const savedTheme = localStorage.getItem("theme") || "dark";
     return savedTheme === "dark";
   });
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, async (user) => {
+      if (!user) { setIsAdmin(false); return; }
+      try {
+        const snap = await getDoc(doc(db, "users", user.uid));
+        if (snap.exists()) {
+          const role = (snap.data().role || "").trim().toLowerCase();
+          setIsAdmin(role === "admin");
+        }
+      } catch { setIsAdmin(false); }
+    });
+    return () => unsub();
+  }, []);
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", darkMode);
@@ -44,6 +64,9 @@ function App() {
       <Route path="/favoritos" element={<Favoritos />} />
       <Route path="/mis-pedidos" element={<MisPedidos />} />
       <Route path="/notificaciones" element={<Notificaciones />} />
+      {/* Rutas solo admin */}
+      <Route path="/admin/productos" element={isAdmin ? <AgregarProducto /> : <Navigate to="/" replace />} />
+      <Route path="/admin/usuarios"  element={isAdmin ? <Usuarios />         : <Navigate to="/" replace />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "./Sidebar";
-import productos from "../data/productos.json";
+import productosLocales from "../data/productos.json";
 import GradientText from "../components/GradientText";
+import { db } from "../firebase";
+import { collection, getDocs } from "firebase/firestore";
 
 const CATEGORIAS = ["Todos", "Laptops", "PCs", "Mouse", "Monitores", "Accesorios", "Almacenamiento"];
 
@@ -28,7 +30,7 @@ function getPalette(dark) {
   };
 }
 
-function ProductCard({ producto, onVerDetalle, onAgregar, onToggleFav, esFavorito, p }) {
+function ProductCard({ producto, onVerDetalle, onAgregar, onToggleFav, esFavorito, p, isDark }) {
   const [hovered, setHovered] = useState(false);
   return (
     <div
@@ -37,7 +39,7 @@ function ProductCard({ producto, onVerDetalle, onAgregar, onToggleFav, esFavorit
       onMouseLeave={() => setHovered(false)}
     >
       <div style={{ position: "relative", cursor: "pointer" }} onClick={() => onVerDetalle(producto)}>
-        <img src={producto.imagen} alt={producto.nombre} style={{ width: "100%", height: "180px", objectFit: "cover", display: "block" }} />
+        <img src={producto.imagen} alt={producto.nombre} style={{ width: "100%", height: "180px", objectFit: "contain", display: "block", background: isDark ? "#0d1f3c" : "#f8fafc", padding: "0.5rem" }} />
         {producto.badge && (
           <span style={{ position: "absolute", top: "10px", left: "10px", padding: "3px 10px", borderRadius: "20px", fontSize: "0.75rem", fontWeight: 700, background: producto.badge === "Nuevo" ? "#10b981" : "#f59e0b", color: "#fff", zIndex: 2 }}>
             {producto.badge}
@@ -126,6 +128,22 @@ export default function Catalogo() {
     try { return JSON.parse(localStorage.getItem("techvault_favoritos") || "[]"); } catch { return []; }
   });
 
+  // Productos: locales + Firebase
+  const [productos, setProductos] = useState(productosLocales);
+
+  useEffect(() => {
+    // Cargar productos de Firebase y combinar con los locales
+    getDocs(collection(db, "productos")).then((snap) => {
+      const firebaseProds = snap.docs.map((d) => ({ ...d.data(), id: d.id, fromFirebase: true }));
+      if (firebaseProds.length > 0) {
+        // Asignar IDs numéricos únicos para los de Firebase
+        const maxId = Math.max(...productosLocales.map((p) => p.id), 0);
+        const withIds = firebaseProds.map((p, i) => ({ ...p, _fbId: p.id, id: maxId + i + 1 }));
+        setProductos([...productosLocales, ...withIds]);
+      }
+    }).catch(() => {});
+  }, []);
+
   const toggleFavorito = (producto) => {
     setFavoritos((prev) => {
       const existe = prev.find((x) => x.id === producto.id);
@@ -181,14 +199,7 @@ export default function Catalogo() {
       <main style={{ flex: 1, padding: "2rem", color: p.text, overflowY: "auto" }}>
         {/* Header */}
         <div style={{ marginBottom: "2rem" }}>
-          <GradientText
-            colors={["#6366f1", "#a78bfa", "#60a5fa", "#6366f1"]}
-            animationSpeed={4}
-            showBorder={false}
-            className="catalogo-title"
-          >
-            <span style={{ fontSize: "2rem", fontWeight: 800 }}>Catálogo de Productos</span>
-          </GradientText>
+          <h1 style={{ fontSize: "2rem", fontWeight: 800, color: isDark ? "#ffffff" : "#0f172a" }}>Catálogo de Productos</h1>
           <p style={{ color: p.textMuted, marginTop: "0.25rem" }}>Encuentra los mejores productos tecnológicos</p>
         </div>
 
@@ -213,7 +224,7 @@ export default function Catalogo() {
         {/* Grid de productos */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "1.5rem" }}>
           {productosPaginados.map((producto) => (
-            <ProductCard key={producto.id} producto={producto} onVerDetalle={setProductoModal} onAgregar={agregarAlCarrito} onToggleFav={toggleFavorito} esFavorito={favoritos.some((f) => f.id === producto.id)} p={p} />
+            <ProductCard key={producto.id} producto={producto} onVerDetalle={setProductoModal} onAgregar={agregarAlCarrito} onToggleFav={toggleFavorito} esFavorito={favoritos.some((f) => f.id === producto.id)} p={p} isDark={isDark} />
           ))}
         </div>
         {productosFiltrados.length === 0 && (
@@ -258,7 +269,7 @@ export default function Catalogo() {
             </div>
             <div style={{ display: "flex", gap: "2rem", padding: "1.5rem", flexWrap: "wrap" }}>
               <div style={{ flex: "0 0 auto", width: "320px", maxWidth: "100%" }}>
-                <img src={productoModal.imagen} alt={productoModal.nombre} style={{ width: "100%", height: "260px", objectFit: "cover", borderRadius: "12px", border: "1px solid #1e3a5f" }} />
+                <img src={productoModal.imagen} alt={productoModal.nombre} style={{ width: "100%", height: "260px", objectFit: "contain", borderRadius: "12px", border: "1px solid #1e3a5f", background: isDark ? "#0d1f3c" : "#f8fafc", padding: "0.75rem" }} />
               </div>
               <div style={{ flex: 1, minWidth: "220px" }}>
                 <h2 style={{ fontWeight: 800, fontSize: "1.4rem", color: "#f1f5f9", marginBottom: "0.5rem" }}>{productoModal.nombre}</h2>

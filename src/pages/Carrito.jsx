@@ -36,6 +36,7 @@ export default function CartPage() {
   const ticketRef = useRef(null);
   const [cart, setCart] = useState([]);
   const [step, setStep] = useState(1);
+  const [processing, setProcessing] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("");
   const [cardData, setCardData] = useState({ number: "", name: "", date: "", cvv: "" });
   const [voucher, setVoucher] = useState(null);
@@ -98,7 +99,12 @@ export default function CartPage() {
       title: paymentMethod === "tarjeta" ? "¡Pago confirmado!" : "Pedido en revisión",
       body: `Tu pedido ${order.orderId} por S/ ${subtotal.toFixed(2)} fue registrado correctamente.`,
     });
-    setStep(3);
+    // Animación de carga antes del ticket
+    setProcessing(true);
+    setTimeout(() => {
+      setProcessing(false);
+      setStep(3);
+    }, 2200);
   };
 
   const handlePrint = () => {
@@ -198,7 +204,34 @@ export default function CartPage() {
           </>
         )}
 
-        {step === 3 ? (
+        {processing ? (
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "60vh", gap: "1.5rem" }}>
+            {/* Spinner */}
+            <div style={{ position: "relative", width: "80px", height: "80px" }}>
+              <div style={{
+                position: "absolute", inset: 0, borderRadius: "50%",
+                border: "4px solid rgba(37,99,235,0.15)",
+              }} />
+              <div style={{
+                position: "absolute", inset: 0, borderRadius: "50%",
+                border: "4px solid transparent",
+                borderTopColor: "#2563eb",
+                animation: "spin 0.9s linear infinite",
+              }} />
+              <div style={{
+                position: "absolute", inset: "12px", borderRadius: "50%",
+                border: "3px solid transparent",
+                borderTopColor: "#60a5fa",
+                animation: "spin 1.4s linear infinite reverse",
+              }} />
+            </div>
+            <div style={{ textAlign: "center" }}>
+              <p style={{ color: "#f1f5f9", fontWeight: 700, fontSize: "1.1rem", marginBottom: "0.4rem" }}>Procesando tu pago...</p>
+              <p style={{ color: "#64748b", fontSize: "0.88rem" }}>Por favor espera un momento</p>
+            </div>
+            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+          </div>
+        ) : step === 3 ? (
           <div style={{ maxWidth: "420px", margin: "0 auto" }}>
             {/* Confirmación */}
             <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "2rem" }}>

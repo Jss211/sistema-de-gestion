@@ -95,7 +95,7 @@ export default function Notificaciones() {
         {/* Header */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "2rem", flexWrap: "wrap", gap: "1rem" }}>
           <div>
-            <h1 style={{ fontSize: "1.8rem", fontWeight: 800, background: "linear-gradient(90deg,#6366f1,#60a5fa)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+            <h1 style={{ fontSize: "1.8rem", fontWeight: 800, color: t.text }}>
               Notificaciones
             </h1>
             <p style={{ color: t.textSub, marginTop: "0.25rem", fontSize: "0.95rem" }}>

@@ -6,8 +6,24 @@ import {
   GoogleAuthProvider,
   sendPasswordResetEmail,
 } from "firebase/auth";
-import { auth } from "../firebase";
+import { auth, db } from "../firebase";
+import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
 import { X, Eye, EyeOff } from "lucide-react";
+
+// Guarda el usuario en Firestore si no existe aún
+async function saveUserToFirestore(user) {
+  const ref = doc(db, "users", user.uid);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) {
+    await setDoc(ref, {
+      uid:       user.uid,
+      email:     user.email || "",
+      name:      user.displayName || user.email?.split("@")[0] || "Usuario",
+      role:      "cliente",
+      createdAt: serverTimestamp(),
+    });
+  }
+}
 
 export default function AuthModal({ onClose, onSuccess }) {
   const [mode, setMode] = useState("login"); // "login" | "register" | "reset"
@@ -32,7 +48,8 @@ export default function AuthModal({ onClose, onSuccess }) {
     setLoading(true);
     try {
       if (mode === "register") {
-        await createUserWithEmailAndPassword(auth, email, password);
+        const cred = await createUserWithEmailAndPassword(auth, email, password);
+        await saveUserToFirestore(cred.user);
       } else {
         await signInWithEmailAndPassword(auth, email, password);
       }
@@ -58,7 +75,8 @@ export default function AuthModal({ onClose, onSuccess }) {
     setLoading(true);
     try {
       const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
+      const cred = await signInWithPopup(auth, provider);
+      await saveUserToFirestore(cred.user);
       onSuccess?.();
       onClose();
     } catch (err) {

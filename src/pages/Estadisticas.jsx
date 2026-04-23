@@ -45,17 +45,17 @@ export default function Estadisticas() {
         {/* Transacciones semanales */}
         <TransaccionesChart data={transacciones} />
 
-        {/* Categorías + Ventas mensuales */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <CategoriasChart data={categorias} />
-          <VentasMensualesChart data={ventasMensuales} />
-        </div>
+        {/* Categorías */}
+        <CategoriasChart data={categorias} />
 
-        {/* Productos por valor + Inventario mensual */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <ProductosValorChart data={productosValor} />
-          <InventarioMensualChart data={inventarioMensual} />
-        </div>
+        {/* Ventas mensuales */}
+        <VentasMensualesChart data={ventasMensuales} />
+
+        {/* Inventario mensual */}
+        <InventarioMensualChart data={inventarioMensual} />
+
+        {/* Productos por valor + Productos Críticos */}
+        <ProductosValorChart data={productosValor} />
 
       </div>
     </div>

@@ -12,11 +12,14 @@ import {
   HomeIcon,
   LightBulbIcon,
   MoonIcon,
+  PlusCircleIcon,
   ShoppingCartIcon,
   UserIcon,
+  UsersIcon,
 } from "@heroicons/react/24/outline";
-import { auth } from "../firebase";
+import { auth, db } from "../firebase";
 import { onAuthStateChanged, signOut } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
 import AuthModal from "../components/AuthModal";
 
 const DEFAULT_PROFILE = {
@@ -51,18 +54,28 @@ export default function Sidebar() {
   const isAdminUser = (profile.role || profile.rol)?.toLowerCase() === "admin";
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setFirebaseUser(user);
       if (user) {
-        // Leer datos guardados en perfil (incluye foto personalizada)
         const saved = JSON.parse(localStorage.getItem(`perfil_${user.uid}`) || "{}");
-        setProfile({
+        // Leer rol desde Firestore
+        let role = "cliente";
+        try {
+          const snap = await getDoc(doc(db, "users", user.uid));
+          if (snap.exists()) {
+            const data = snap.data();
+            role = (data.role || data.rol || "cliente").trim().toLowerCase();
+          }
+        } catch {}
+        const perfil = {
           nombre: saved.nombre || user.displayName || "Usuario",
           email: user.email || "usuario@ejemplo.com",
           photoURL: saved.photoURL || user.photoURL || "",
-          rol: "Cliente",
-          role: "cliente",
-        });
+          rol: role === "admin" ? "Admin" : "Cliente",
+          role,
+        };
+        setProfile(perfil);
+        localStorage.setItem("userProfile", JSON.stringify(perfil));
       }
     });
     return () => unsubscribe();
@@ -80,16 +93,23 @@ export default function Sidebar() {
   }, [theme]);
 
   useEffect(() => {
-    const updateProfile = () => {
+    const updateProfile = async () => {
       const user = auth.currentUser;
       if (user) {
         const saved = JSON.parse(localStorage.getItem(`perfil_${user.uid}`) || "{}");
+        let role = "cliente";
+        try {
+          const { doc, getDoc } = await import("firebase/firestore");
+          const { db } = await import("../firebase");
+          const snap = await getDoc(doc(db, "users", user.uid));
+          if (snap.exists()) role = (snap.data().role || "cliente").trim().toLowerCase();
+        } catch {}
         setProfile({
           nombre: saved.nombre || user.displayName || "Usuario",
           email: user.email || "",
           photoURL: saved.photoURL || user.photoURL || "",
-          rol: "Cliente",
-          role: "cliente",
+          rol: role === "admin" ? "Admin" : "Cliente",
+          role,
         });
       }
     };
@@ -235,6 +255,21 @@ export default function Sidebar() {
             <LightBulbIcon className="h-5 w-5" />
             Soporte
           </NavLink>
+
+          {/* ── Solo Admin ── */}
+          {isAdminUser && (
+            <>
+              <p className="text-slate-400 dark:text-gray-500 text-xs mt-3 mb-1 tracking-wide px-1">ADMINISTRACIÓN</p>
+              <NavLink to="/admin/productos" className={getLinkClassName}>
+                <PlusCircleIcon className="h-5 w-5" />
+                Agregar producto
+              </NavLink>
+              <NavLink to="/admin/usuarios" className={getLinkClassName}>
+                <UsersIcon className="h-5 w-5" />
+                Usuarios
+              </NavLink>
+            </>
+          )}
         </nav>
       </div>
 

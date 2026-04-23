@@ -1,12 +1,17 @@
 import { useState, useEffect, useRef } from "react";
 import { onAuthStateChanged, updateProfile } from "firebase/auth";
-import { auth } from "../firebase";
+import { auth, db } from "../firebase";
+import { doc, getDoc } from "firebase/firestore";
 import Sidebar from "./Sidebar";
 
-// Utilidad: leer total de compras del cliente desde localStorage
-function getTotalCompras(uid) {
-  const data = JSON.parse(localStorage.getItem(`compras_${uid}`) || "[]");
-  return data.reduce((acc, c) => acc + (c.total || 0), 0);
+// Utilidad: leer total de compras del cliente desde localStorage (orders)
+function getTotalCompras() {
+  const orders = JSON.parse(localStorage.getItem("orders") || "[]");
+  return orders.reduce((acc, o) => acc + (o.total || 0), 0);
+}
+
+function getTotalPedidos() {
+  return JSON.parse(localStorage.getItem("orders") || "[]").length;
 }
 
 // Utilidad: formatear fecha de registro Firebase
@@ -18,19 +23,31 @@ function formatFechaRegistro(user) {
 
 export default function MiPerfil() {
   const [user, setUser] = useState(null);
+  const [userRole, setUserRole] = useState("Cliente");
   const [form, setForm] = useState({ nombre: "", username: "", telefono: "", direccion: "", ciudad: "", codigoPostal: "", pais: "" });
   const [fotoURL, setFotoURL] = useState("");
   const [totalCompras, setTotalCompras] = useState(0);
+  const [totalPedidos, setTotalPedidos] = useState(0);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [alerta, setAlerta] = useState(""); // mensaje de éxito
   const fileRef = useRef();
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (u) => {
+    const unsub = onAuthStateChanged(auth, async (u) => {
       if (!u) return;
       setUser(u);
-      setTotalCompras(getTotalCompras(u.uid));
+      setTotalCompras(getTotalCompras());
+      setTotalPedidos(getTotalPedidos());
+
+      // Leer rol desde Firestore
+      try {
+        const snap = await getDoc(doc(db, "users", u.uid));
+        if (snap.exists()) {
+          const role = (snap.data().role || "cliente").trim().toLowerCase();
+          setUserRole(role === "admin" ? "Admin" : "Cliente");
+        }
+      } catch {}
 
       // Cargar datos guardados en localStorage
       const saved = JSON.parse(localStorage.getItem(`perfil_${u.uid}`) || "{}");
@@ -170,7 +187,7 @@ export default function MiPerfil() {
 
               <div className="text-center">
                 <p className="font-semibold text-slate-900 dark:text-white">{nombreMostrado}</p>
-                <p className="text-xs text-slate-500">Cliente</p>
+                <p className="text-xs text-slate-500">{userRole}</p>
               </div>
             </div>
 
@@ -182,10 +199,11 @@ export default function MiPerfil() {
 
             {/* Total de compras */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 text-center">
-              <p className="text-xs text-slate-500 mb-1">Total de compras</p>
-              <p className="font-semibold text-blue-500 text-lg">
-                ${totalCompras.toLocaleString("es-PE", { minimumFractionDigits: 2 })}
+              <p className="text-xs text-slate-500 mb-1">Total gastado</p>
+              <p className="font-bold text-blue-500 text-xl">
+                S/ {totalCompras.toLocaleString("es-PE", { minimumFractionDigits: 2 })}
               </p>
+              <p className="text-xs text-slate-400 mt-1">{totalPedidos} {totalPedidos === 1 ? "pedido" : "pedidos"}</p>
             </div>
           </div>
 
@@ -274,8 +292,8 @@ function Field({ label, name, value, onChange, icon, placeholder, readOnly }) {
           placeholder={placeholder || ""}
           className={`w-full ${icon ? "pl-9" : "pl-4"} pr-4 py-3 rounded-xl border text-sm transition
             ${readOnly
-              ? "bg-slate-100 dark:bg-slate-700/30 border-slate-200 dark:border-slate-700 text-slate-500 cursor-not-allowed"
-              : "bg-slate-50 dark:bg-slate-700/50 border-slate-200 dark:border-slate-600 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500"
+              ? "bg-slate-100 dark:bg-slate-700/30 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 cursor-not-allowed"
+              : "bg-white dark:bg-slate-700/50 border-slate-200 dark:border-slate-600 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500"
             }`}
         />
       </div>
