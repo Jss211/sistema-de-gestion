@@ -34,7 +34,7 @@ function App() {
         try {
           // Buscamos el rol del usuario en la colección "usuarios" de Firestore
           const userDoc = await getDoc(doc(db, "usuarios", user.uid));
-          if (userDoc.exists() && userDoc.data().rol === "admin") {
+          if (userDoc.exists() && userDoc.data().role === "admin") {
             setIsAdmin(true);
           } else {
             setIsAdmin(false);
