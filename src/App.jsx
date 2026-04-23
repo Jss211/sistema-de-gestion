@@ -24,7 +24,7 @@ function App() {
     return savedTheme === "dark";
   });
 
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(true);
   const [loading, setLoading] = useState(true); // Evita el fallo de redirección en Vercel
 
   // 2. Lógica de Autenticación y Roles (Corrección principal)
