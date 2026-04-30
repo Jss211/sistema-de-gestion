@@ -73,6 +73,7 @@ export default function Favoritos() {
 
 function FavCard({ producto, onQuitar, onAgregarCarrito }) {
   const [added, setAdded] = useState(false);
+  const { t } = useTheme();
 
   const handleAgregar = () => {
     onAgregarCarrito(producto);
