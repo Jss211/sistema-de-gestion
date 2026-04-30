@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
+import { onAuthStateChanged } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
+
 import Dashboard from "./pages/Dashboard";
 import Catalogo from "./pages/Catalogo";
 import Carrito from "./pages/Carrito";
@@ -11,34 +14,41 @@ import MisPedidos from "./pages/MisPedidos";
 import Notificaciones from "./pages/Notificaciones";
 import AgregarProducto from "./pages/admin/AgregarProducto";
 import Usuarios from "./pages/admin/Usuarios";
-
-// Configuración de Firebase
 import { auth, db } from "./firebase";
-import { onAuthStateChanged } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
+
+const normalizeRole = (value) => String(value || "").trim().toLowerCase();
+
+async function getUserAdminRole(uid) {
+  for (const collectionName of ["users", "usuarios"]) {
+    try {
+      const snap = await getDoc(doc(db, collectionName, uid));
+      if (!snap.exists()) continue;
+
+      const data = snap.data();
+      const role = normalizeRole(data.role || data.rol);
+      if (role) return role;
+    } catch (error) {
+      console.error(`Error leyendo ${collectionName}:`, error);
+    }
+  }
+
+  return "cliente";
+}
 
 function App() {
-  // 1. Estados de la Aplicación
   const [darkMode, setDarkMode] = useState(() => {
     const savedTheme = localStorage.getItem("theme") || "dark";
     return savedTheme === "dark";
   });
-
   const [isAdmin, setIsAdmin] = useState(true);
-  const [loading, setLoading] = useState(true); // Evita el fallo de redirección en Vercel
+  const [loading, setLoading] = useState(true);
 
-  // 2. Lógica de Autenticación y Roles (Corrección principal)
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         try {
-          // Buscamos el rol del usuario en la colección "usuarios" de Firestore
-          const userDoc = await getDoc(doc(db, "usuarios", user.uid));
-          if (userDoc.exists() && userDoc.data().role === "admin") {
-            setIsAdmin(true);
-          } else {
-            setIsAdmin(false);
-          }
+          const role = await getUserAdminRole(user.uid);
+          setIsAdmin(role === "admin");
         } catch (error) {
           console.error("Error verificando rol:", error);
           setIsAdmin(false);
@@ -46,16 +56,16 @@ function App() {
       } else {
         setIsAdmin(false);
       }
-      setLoading(false); // Ya terminó de verificar, podemos mostrar las rutas
+
+      setLoading(false);
     });
 
     return () => unsubscribe();
   }, []);
 
-  // 3. Efectos de Interfaz (Título y Dark Mode)
   useEffect(() => {
     const handleVisibilityChange = () => {
-      document.title = document.hidden ? "¡Vuelve como a TINDER 🔥" : "TechVault";
+      document.title = document.hidden ? "Vuelve a TechVault" : "TechVault";
     };
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
@@ -75,14 +85,16 @@ function App() {
     return () => window.removeEventListener("theme_changed", handleThemeChange);
   }, []);
 
-  // 4. Renderizado condicional mientras carga
   if (loading) {
-    return <div className="h-screen w-screen flex items-center justify-center bg-gray-900 text-white">Cargando TechVault...</div>;
+    return (
+      <div className="flex h-screen w-screen items-center justify-center bg-gray-900 text-white">
+        Cargando TechVault...
+      </div>
+    );
   }
 
   return (
     <Routes>
-      {/* Rutas Públicas/Usuario */}
       <Route path="/" element={<Dashboard />} />
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/catalogo" element={<Catalogo />} />
@@ -94,17 +106,15 @@ function App() {
       <Route path="/mis-pedidos" element={<MisPedidos />} />
       <Route path="/notificaciones" element={<Notificaciones />} />
 
-      {/* Rutas Protegidas de Admin */}
-      <Route 
-        path="/admin/productos" 
-        element={isAdmin ? <AgregarProducto /> : <Navigate to="/" replace />} 
+      <Route
+        path="/admin/productos"
+        element={isAdmin ? <AgregarProducto /> : <Navigate to="/" replace />}
       />
-      <Route 
-        path="/admin/usuarios"  
-        element={isAdmin ? <Usuarios /> : <Navigate to="/" replace />} 
+      <Route
+        path="/admin/usuarios"
+        element={isAdmin ? <Usuarios /> : <Navigate to="/" replace />}
       />
 
-      {/* Redirección por defecto */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

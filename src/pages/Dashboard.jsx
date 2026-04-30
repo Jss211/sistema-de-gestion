@@ -65,7 +65,7 @@ export default function Dashboard() {
         {showLogoutAlert && <LogoutAlert />}
 
         {/* Hero + Métricas */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10 items-stretch">
           <HeroSection userName={userName} />
           <MetricsSection />
         </div>
