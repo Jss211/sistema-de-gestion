@@ -221,13 +221,55 @@ export default function Catalogo() {
           ))}
         </div>
 
-        {/* Grid de productos */}
+        {/* Grid de productos principales */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "1.5rem" }}>
           {productosPaginados.map((producto) => (
             <ProductCard key={producto.id} producto={producto} onVerDetalle={setProductoModal} onAgregar={agregarAlCarrito} onToggleFav={toggleFavorito} esFavorito={favoritos.some((f) => f.id === producto.id)} p={p} isDark={isDark} />
           ))}
         </div>
-        {productosFiltrados.length === 0 && (
+
+        {/* --- SECCIÓN NUEVA: INVENTARIO TECHVAULT 🛡️ --- */}
+        <div style={{ marginTop: "5rem", borderTop: `1px solid ${p.cardBorder}`, paddingTop: "3rem" }}>
+          <h2 style={{ fontSize: "1.8rem", fontWeight: 800, color: p.text, marginBottom: "2rem", display: "flex", alignItems: "center", gap: "12px" }}>
+            Inventario TechVault <span style={{ fontSize: "1.4rem" }}>🛡️</span>
+          </h2>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "1.5rem" }}>
+            {productosPaginados.map((prod) => (
+              <div key={prod.id} style={{ background: isDark ? "#111827" : "#fff", borderRadius: "16px", padding: "1.2rem", border: `1px solid ${p.cardBorder}`, boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}>
+                <img src={prod.imageUrl} alt={prod.nombre} style={{ width: "100%", height: "160px", objectFit: "cover", borderRadius: "12px", marginBottom: "1rem" }} />
+                <h3 style={{ fontSize: "0.95rem", fontWeight: 700, color: p.text, marginBottom: "0.5rem" }}>{prod.nombre}</h3>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ color: "#3b82f6", fontWeight: 900, fontSize: "1.1rem" }}>S/ {Number(prod.precio).toFixed(2)}</span>
+                  <span style={{ fontSize: "0.75rem", color: p.textMuted, background: isDark ? "#1f2937" : "#f3f4f6", padding: "2px 8px", borderRadius: "6px" }}>Stock: {prod.stock}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Paginación */}
+          {totalPaginas > 1 && (
+            <div style={{ display: "flex", justifyContent: "center", gap: "8px", marginTop: "2.5rem" }}>
+              {[...Array(totalPaginas)].map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setCurrentPage(i + 1)}
+                  style={{
+                    width: "38px", height: "38px", borderRadius: "10px", border: "none", cursor: "pointer",
+                    background: currentPage === i + 1 ? "#6366f1" : p.cardBg,
+                    color: "#fff", fontWeight: 700, transition: "all 0.2s",
+                    border: currentPage === i + 1 ? "none" : `1px solid ${p.cardBorder}`
+                  }}
+                >
+                  {i + 1}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Mensaje de no resultados */}
+        {productosFiltrados.length === 0 && productosFirebase.length === 0 && (
           <div style={{ textAlign: "center", padding: "4rem", color: p.textSub }}>
             <div style={{ fontSize: "3rem" }}>🔍</div>
             <p style={{ marginTop: "1rem", fontSize: "1.1rem" }}>No se encontraron productos</p>

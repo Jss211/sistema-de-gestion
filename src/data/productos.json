@@ -127,5 +127,16 @@
     "descripcion": "Lenovo ThinkPad X1 Carbon con procesador Intel Core i7, 16GB RAM LPDDR5, SSD 512GB, pantalla IPS de 14 pulgadas Full HD y teclado retroiluminado. Diseñado para profesionales.",
     "stock": 9,
     "badge": null
+  },
+  {
+    "id": 13,
+    "nombre": "Laptop HP 15-dy2507la",
+    "categoria": "Laptops",
+    "precio": 2499.00,
+    "precioAntes": 2899.00,
+    "imagen": "https://qualityproducts.vtexassets.com/arquivos/ids/176630-1200-auto?v=639084275834700000&width=1200&height=auto&aspect=true",
+    "descripcion": "Laptop HP con procesador Intel, diseño elegante con microbordes y gran autonomía de batería para mantenerte productivo todo el día.",
+    "stock": 10,
+    "badge": "Nuevo"
   }
 ]
