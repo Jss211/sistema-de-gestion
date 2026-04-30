@@ -108,8 +108,7 @@ export default function AgregarProducto() {
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: t.pageBg, color: t.text }}>
       <Sidebar />
-      <main style={{ flex: 1, padding: "2.5rem 2rem", overflowY: "auto" }}>
-
+      <main className="flex-1 overflow-y-auto p-4 pt-16 md:p-10 md:pt-10">
         {/* Header */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "2rem", flexWrap: "wrap", gap: "1rem" }}>
           <div>
@@ -152,7 +151,7 @@ export default function AgregarProducto() {
             </div>
 
             <form onSubmit={handleSubmit}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                 <div>
                   <label style={lbl}>Nombre *</label>
                   <input name="nombre" value={form.nombre} onChange={handle} placeholder="Ej: Laptop Dell XPS 15" style={inp} required />
@@ -165,7 +164,7 @@ export default function AgregarProducto() {
                 </div>
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
                 <div>
                   <label style={lbl}>Precio (S/) *</label>
                   <input name="precio" type="number" step="0.01" min="0" value={form.precio} onChange={handle} placeholder="0.00" style={inp} required />
@@ -186,7 +185,7 @@ export default function AgregarProducto() {
                 </div>
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
                 <div>
                   <label style={lbl}>Rating</label>
                   <input name="rating" type="number" step="0.1" min="0" max="5" value={form.rating} onChange={handle} style={inp} />

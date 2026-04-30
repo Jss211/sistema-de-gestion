@@ -38,8 +38,7 @@ export default function Favoritos() {
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: t.inputBg, color: t.text }}>
       <Sidebar />
-
-      <main style={{ flex: 1, padding: "2.5rem 2rem", overflowY: "auto" }}>
+      <main className="flex-1 overflow-y-auto p-4 pt-16 md:p-10 md:pt-10">
         <h1 style={{ fontSize: "1.8rem", fontWeight: 800, marginBottom: "0.25rem", color: t.text }}>
           Mis Favoritos
         </h1>
@@ -60,7 +59,7 @@ export default function Favoritos() {
             </button>
           </div>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "1.5rem" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(280px, 100%), 1fr))", gap: "1rem" }}>
             {favoritos.map((producto) => (
               <FavCard key={producto.id} producto={producto} onQuitar={quitarFavorito} onAgregarCarrito={agregarAlCarrito} />
             ))}
@@ -73,6 +72,7 @@ export default function Favoritos() {
 
 function FavCard({ producto, onQuitar, onAgregarCarrito }) {
   const [added, setAdded] = useState(false);
+  const { t } = useTheme();
 
   const handleAgregar = () => {
     onAgregarCarrito(producto);

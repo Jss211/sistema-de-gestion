@@ -73,7 +73,7 @@ export default function Usuarios() {
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: t.pageBg, color: t.text }}>
       <Sidebar />
-      <main style={{ flex: 1, padding: "2.5rem 2rem", overflowY: "auto" }}>
+      <main className="flex-1 overflow-y-auto p-4 pt-16 md:p-10 md:pt-10">
 
         {/* Header */}
         <div style={{ marginBottom: "2rem" }}>
@@ -86,7 +86,7 @@ export default function Usuarios() {
         </div>
 
         {/* Stats */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "1rem", marginBottom: "2rem" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(160px,100%), 1fr))", gap: "1rem", marginBottom: "2rem" }}>
           {[
             { label: "Usuarios registrados", value: users.length, color: "#6366f1", Icon: UsersIcon },
             { label: "Admins",               value: admins,        color: "#3b82f6", Icon: ShieldCheckIcon },

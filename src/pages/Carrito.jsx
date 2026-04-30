@@ -192,7 +192,7 @@ export default function CartPage() {
     <div style={{ display: "flex", minHeight: "100vh", background: t.pageBg, color: t.text }}>
       <Sidebar />
 
-      <div style={{ flex: 1, padding: "2.5rem 2rem", overflowY: "auto" }}>
+      <div style={{ flex: 1, padding: "1rem", paddingTop: "4rem", overflowY: "auto" }} className="md:!p-10">
         {step !== 3 && (
           <>
             <h1 style={{ fontSize: "1.8rem", fontWeight: 800, color: t.text, marginBottom: "0.25rem" }}>
@@ -385,7 +385,7 @@ export default function CartPage() {
             </div>
           </div>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: "1.5rem", alignItems: "start" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "1.5rem", alignItems: "start" }} className="md:!grid-cols-[1fr_340px]">
 
             {/* ── Columna izquierda ── */}
             <div>

@@ -10,9 +10,9 @@ export default function HeroSection({ userName }) {
   return (
     <div className="relative group w-full">
       <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 via-sky-500 to-blue-600 rounded-3xl blur opacity-25 group-hover:opacity-70 transition duration-500" />
-      <div className="relative overflow-hidden rounded-3xl shadow-2xl ring-1 ring-slate-200 dark:ring-white/10 text-slate-900 dark:text-white h-[280px] w-full">
+      <div className="relative overflow-hidden rounded-3xl shadow-2xl ring-1 ring-slate-200 dark:ring-white/10 text-slate-900 dark:text-white min-h-[280px] w-full">
         <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-white to-blue-100 dark:from-[#0a1428] dark:via-[#0b1326] dark:to-[#1e3a8a]" />
-        <div className="relative z-10 p-6 h-full flex flex-col justify-between">
+        <div className="relative z-10 p-6 flex flex-col justify-between gap-4">
           <div>
             <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-slate-900 to-blue-700 dark:from-white dark:to-blue-200 bg-clip-text text-transparent mb-6">
               Bienvenido, {userName}
