@@ -1,11 +1,8 @@
 import { useEffect, useState } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
-import { auth } from "./firebase"; // Importamos auth para la seguridad
-import { onAuthStateChanged } from "firebase/auth";
-import Sidebar from "./pages/Sidebar";
 import Dashboard from "./pages/Dashboard";
 import Catalogo from "./pages/Catalogo";
-import AgregarProducto from "./pages/AgregarProducto";
+import Carrito from "./pages/Carrito";
 import Estadisticas from "./pages/Estadisticas";
 import Soporte from "./pages/Soporte";
 import MiPerfil from "./pages/MiPerfil";
@@ -40,18 +37,20 @@ function App() {
   }, []);
 
   useEffect(() => {
-    document.documentElement.classList.add("dark");
-    localStorage.setItem("theme", "dark");
+    document.documentElement.classList.toggle("dark", darkMode);
+    localStorage.setItem("theme", darkMode ? "dark" : "light");
+  }, [darkMode]);
 
-    // Escuchamos si el usuario está logueado
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-    });
-    return () => unsubscribe();
+  useEffect(() => {
+    const handleThemeChange = (event) => {
+      const nextTheme = event.detail?.theme;
+      if (!nextTheme) return;
+      setDarkMode(nextTheme === "dark");
+    };
+
+    window.addEventListener("theme_changed", handleThemeChange);
+    return () => window.removeEventListener("theme_changed", handleThemeChange);
   }, []);
-
-  // Validación de administrador por correo
-  const isAdmin = user?.email === "wilfredoederp@gmail.com";
 
   return (
     <Routes>

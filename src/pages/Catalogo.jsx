@@ -51,10 +51,8 @@ function ProductCard({ producto, onVerDetalle, onAgregar, onToggleFav, esFavorit
           width: "36px", height: "36px", borderRadius: "8px",
           background: "rgba(255,255,255,0.92)",
           display: "flex", alignItems: "center", justifyContent: "center",
-          opacity: hovered ? 1 : 0,
-          transition: "opacity 0.2s ease",
-          zIndex: 2,
-          boxShadow: "0 2px 8px rgba(0,0,0,0.2)"
+          opacity: hovered ? 1 : 0, transition: "opacity 0.2s ease",
+          zIndex: 2, boxShadow: "0 2px 8px rgba(0,0,0,0.2)"
         }}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#334155" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="22" y2="22"/>
@@ -68,8 +66,7 @@ function ProductCard({ producto, onVerDetalle, onAgregar, onToggleFav, esFavorit
             width: "36px", height: "36px", borderRadius: "8px",
             background: esFavorito ? "rgba(239,68,68,0.15)" : "rgba(255,255,255,0.92)",
             border: "none", display: "flex", alignItems: "center", justifyContent: "center",
-            cursor: "pointer", zIndex: 3,
-            boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+            cursor: "pointer", zIndex: 3, boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
             transition: "background 0.2s, transform 0.15s",
           }}
           onMouseEnter={e => e.currentTarget.style.transform = "scale(1.15)"}
@@ -118,28 +115,23 @@ export default function Catalogo() {
   const [paginaActual, setPaginaActual] = useState(1);
   const PRODUCTOS_POR_PAGINA = 8;
 
-  // Carrito sincronizado con localStorage
   const [carrito, setCarrito] = useState(() => {
     try { return JSON.parse(localStorage.getItem("techvault_cart") || "[]"); } catch { return []; }
   });
 
-  // Favoritos
   const [favoritos, setFavoritos] = useState(() => {
     try { return JSON.parse(localStorage.getItem("techvault_favoritos") || "[]"); } catch { return []; }
   });
 
-  // Productos: locales + Firebase
+  // Productos: Firestore como fuente principal, locales como fallback si Firestore está vacío
   const [productos, setProductos] = useState(productosLocales);
 
   useEffect(() => {
-    // Cargar productos de Firebase y combinar con los locales
     getDocs(collection(db, "productos")).then((snap) => {
-      const firebaseProds = snap.docs.map((d) => ({ ...d.data(), id: d.id, fromFirebase: true }));
-      if (firebaseProds.length > 0) {
-        // Asignar IDs numéricos únicos para los de Firebase
-        const maxId = Math.max(...productosLocales.map((p) => p.id), 0);
-        const withIds = firebaseProds.map((p, i) => ({ ...p, _fbId: p.id, id: maxId + i + 1 }));
-        setProductos([...productosLocales, ...withIds]);
+      if (!snap.empty) {
+        const firebaseProds = snap.docs.map((d) => ({ ...d.data(), id: d.id }));
+        firebaseProds.sort((a, b) => (a.nombre || "").localeCompare(b.nombre || ""));
+        setProductos(firebaseProds);
       }
     }).catch(() => {});
   }, []);
@@ -153,7 +145,6 @@ export default function Catalogo() {
       return updated;
     });
   };
-
 
   useEffect(() => {
     const handler = (e) => { const t = e.detail?.theme; if (t) setIsDark(t === "dark"); };
@@ -175,7 +166,6 @@ export default function Catalogo() {
     paginaActual * PRODUCTOS_POR_PAGINA
   );
 
-  // Reset página al cambiar filtros
   const handleCategoria = (cat) => { setCategoriaActiva(cat); setPaginaActual(1); };
   const handleBusqueda = (val) => { setBusqueda(val); setPaginaActual(1); };
 
@@ -221,55 +211,14 @@ export default function Catalogo() {
           ))}
         </div>
 
-        {/* Grid de productos principales */}
+        {/* Grid de productos */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "1.5rem" }}>
           {productosPaginados.map((producto) => (
             <ProductCard key={producto.id} producto={producto} onVerDetalle={setProductoModal} onAgregar={agregarAlCarrito} onToggleFav={toggleFavorito} esFavorito={favoritos.some((f) => f.id === producto.id)} p={p} isDark={isDark} />
           ))}
         </div>
 
-        {/* --- SECCIÓN NUEVA: INVENTARIO TECHVAULT 🛡️ --- */}
-        <div style={{ marginTop: "5rem", borderTop: `1px solid ${p.cardBorder}`, paddingTop: "3rem" }}>
-          <h2 style={{ fontSize: "1.8rem", fontWeight: 800, color: p.text, marginBottom: "2rem", display: "flex", alignItems: "center", gap: "12px" }}>
-            Inventario TechVault <span style={{ fontSize: "1.4rem" }}>🛡️</span>
-          </h2>
-
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "1.5rem" }}>
-            {productosPaginados.map((prod) => (
-              <div key={prod.id} style={{ background: isDark ? "#111827" : "#fff", borderRadius: "16px", padding: "1.2rem", border: `1px solid ${p.cardBorder}`, boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}>
-                <img src={prod.imageUrl} alt={prod.nombre} style={{ width: "100%", height: "160px", objectFit: "cover", borderRadius: "12px", marginBottom: "1rem" }} />
-                <h3 style={{ fontSize: "0.95rem", fontWeight: 700, color: p.text, marginBottom: "0.5rem" }}>{prod.nombre}</h3>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span style={{ color: "#3b82f6", fontWeight: 900, fontSize: "1.1rem" }}>S/ {Number(prod.precio).toFixed(2)}</span>
-                  <span style={{ fontSize: "0.75rem", color: p.textMuted, background: isDark ? "#1f2937" : "#f3f4f6", padding: "2px 8px", borderRadius: "6px" }}>Stock: {prod.stock}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Paginación */}
-          {totalPaginas > 1 && (
-            <div style={{ display: "flex", justifyContent: "center", gap: "8px", marginTop: "2.5rem" }}>
-              {[...Array(totalPaginas)].map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => setCurrentPage(i + 1)}
-                  style={{
-                    width: "38px", height: "38px", borderRadius: "10px", border: "none", cursor: "pointer",
-                    background: currentPage === i + 1 ? "#6366f1" : p.cardBg,
-                    color: "#fff", fontWeight: 700, transition: "all 0.2s",
-                    border: currentPage === i + 1 ? "none" : `1px solid ${p.cardBorder}`
-                  }}
-                >
-                  {i + 1}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Mensaje de no resultados */}
-        {productosFiltrados.length === 0 && productosFirebase.length === 0 && (
+        {productosFiltrados.length === 0 && (
           <div style={{ textAlign: "center", padding: "4rem", color: p.textSub }}>
             <div style={{ fontSize: "3rem" }}>🔍</div>
             <p style={{ marginTop: "1rem", fontSize: "1.1rem" }}>No se encontraron productos</p>
@@ -301,7 +250,7 @@ export default function Catalogo() {
         )}
       </main>
 
-      {/* ── Modal Detalles producto ── */}
+      {/* Modal Detalles producto */}
       {productoModal && (
         <div onClick={() => setProductoModal(null)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: "1rem" }}>
           <div onClick={(e) => e.stopPropagation()} style={{ background: "#0f172a", borderRadius: "16px", maxWidth: "780px", width: "100%", overflow: "hidden", boxShadow: "0 24px 60px rgba(0,0,0,0.7)", maxHeight: "90vh", overflowY: "auto", border: "1px solid #1e3a5f" }}>
@@ -359,7 +308,6 @@ export default function Catalogo() {
           </div>
         </div>
       )}
-
     </div>
   );
 }
