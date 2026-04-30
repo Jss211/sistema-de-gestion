@@ -132,7 +132,7 @@ export default function MiPerfil() {
     <div className="flex min-h-screen overflow-x-hidden bg-[#f5f7fb] dark:bg-[#0f172a] text-slate-900 dark:text-white">
       <Sidebar />
 
-      <div className="flex-1 p-4 sm:p-6 lg:p-10 overflow-x-hidden">
+      <div className="flex-1 p-4 pt-16 sm:p-6 sm:pt-6 lg:p-10 overflow-x-hidden">
 
         {/* Alerta de éxito */}
         {alerta && (

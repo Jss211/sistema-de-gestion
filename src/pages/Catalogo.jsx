@@ -185,8 +185,7 @@ export default function Catalogo() {
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: p.pageBg }}>
       <Sidebar />
-
-      <main style={{ flex: 1, padding: "2rem", color: p.text, overflowY: "auto" }}>
+      <main className="flex-1 overflow-y-auto p-4 pt-16 md:p-8 md:pt-8" style={{ color: p.text }}>
         {/* Header */}
         <div style={{ marginBottom: "2rem" }}>
           <h1 style={{ fontSize: "2rem", fontWeight: 800, color: isDark ? "#ffffff" : "#0f172a" }}>Catálogo de Productos</h1>
@@ -212,7 +211,7 @@ export default function Catalogo() {
         </div>
 
         {/* Grid de productos */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "1.5rem" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(260px, 100%), 1fr))", gap: "1rem" }}>
           {productosPaginados.map((producto) => (
             <ProductCard key={producto.id} producto={producto} onVerDetalle={setProductoModal} onAgregar={agregarAlCarrito} onToggleFav={toggleFavorito} esFavorito={favoritos.some((f) => f.id === producto.id)} p={p} isDark={isDark} />
           ))}

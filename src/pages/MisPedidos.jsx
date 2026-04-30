@@ -65,7 +65,7 @@ export default function MisPedidos() {
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: t.pageBg, color: t.text }}>
       <Sidebar />
-      <main style={{ flex: 1, padding: "2.5rem 2rem", overflowY: "auto" }}>
+      <main className="flex-1 overflow-y-auto p-4 pt-16 md:p-10 md:pt-10">
 
         {/* Header */}
         <div style={{ marginBottom: "2rem" }}>

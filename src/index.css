@@ -186,6 +186,33 @@ body {
   animation: border-spin 3s linear infinite;
 }
 
+/* ==== SCROLLBAR PERSONALIZADO ==== */
+
+/* Ocultar scrollbar nativo pero mantener scroll funcional */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.3);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.55);
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(100, 116, 139, 0.3) transparent;
+}
+
 /* ==== FIX AUTOCOMPLETE NAVEGADOR (fondo blanco) ==== */
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
@@ -199,3 +226,4 @@ textarea:-webkit-autofill:focus {
   transition: background-color 5000s ease-in-out 0s;
   background-color: transparent !important;
 }
+

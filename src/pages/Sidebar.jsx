@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import {
   ArrowRightOnRectangleIcon,
   ArrowRightStartOnRectangleIcon,
@@ -16,6 +16,8 @@ import {
   ShoppingCartIcon,
   UserIcon,
   UsersIcon,
+  Bars3Icon,
+  XMarkIcon,
 } from "@heroicons/react/24/outline";
 import { auth, db } from "../firebase";
 import { onAuthStateChanged, signOut } from "firebase/auth";
@@ -31,6 +33,8 @@ const DEFAULT_PROFILE = {
 };
 
 export default function Sidebar() {
+  const location = useLocation();
+  const [open, setOpen] = useState(false);
   const [theme, setTheme] = useState(() => localStorage.getItem("theme") || "dark");
   const [cartCount, setCartCount] = useState(() => {
     try {
@@ -52,6 +56,15 @@ export default function Sidebar() {
   const [showAuthModal, setShowAuthModal] = useState(false);
 
   const isAdminUser = (profile.role || profile.rol)?.toLowerCase() === "admin";
+
+  // Cerrar sidebar al cambiar de ruta en móvil
+  useEffect(() => { setOpen(false); }, [location.pathname]);
+
+  // Bloquear scroll del body cuando el sidebar está abierto en móvil
+  useEffect(() => {
+    document.body.style.overflow = open ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
+  }, [open]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -111,9 +124,7 @@ export default function Sidebar() {
         });
       }
     };
-
     const onLogout = () => setProfile(DEFAULT_PROFILE);
-
     window.addEventListener("profile_updated", updateProfile);
     window.addEventListener("logout", onLogout);
     return () => {
@@ -151,9 +162,7 @@ export default function Sidebar() {
     };
   }, []);
 
-  const toggleTheme = () => {
-    setTheme((prev) => (prev === "dark" ? "light" : "dark"));
-  };
+  const toggleTheme = () => setTheme((prev) => (prev === "dark" ? "light" : "dark"));
 
   const handleLogout = async () => {
     try {
@@ -168,163 +177,134 @@ export default function Sidebar() {
   };
 
   const getLinkClassName = ({ isActive }) =>
-    `flex items-center gap-3 px-4 py-3 rounded-xl transition ${
+    `flex items-center gap-3 px-3 py-2.5 rounded-xl transition text-sm ${
       isActive
         ? "bg-blue-600 text-white shadow-lg"
-        : "text-slate-700 dark:text-slate-200"
+        : "text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800"
     }`;
 
-  return (
-    <div className="w-64 min-h-full bg-gradient-to-b from-slate-50 to-slate-100 dark:from-[#0a0a0f] dark:to-[#000000] text-slate-900 dark:text-white p-6 shadow-xl border-r border-slate-200 dark:border-slate-800 flex flex-col justify-between">
+  const Badge = ({ count, bg, color = "#fff" }) =>
+    count > 0 ? (
+      <span style={{ marginLeft: "auto", background: bg, color, borderRadius: "50%", width: "20px", height: "20px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.7rem", fontWeight: 800, flexShrink: 0 }}>
+        {count > 99 ? "99+" : count}
+      </span>
+    ) : null;
+
+  const SidebarContent = () => (
+    <div className="flex flex-col justify-between h-full">
       <div>
-        <div className="flex items-center gap-3 mb-10">
-          <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg">
-            <CpuChipIcon className="text-white h-6 w-6" />
+        {/* Logo */}
+        <div className="flex items-center gap-3 mb-5">
+          <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg flex-shrink-0">
+            <CpuChipIcon className="text-white h-5 w-5" />
           </div>
           <div>
-            <h1 className="text-xl font-semibold text-slate-900 dark:text-white">TechVault</h1>
-            <p className="text-slate-500 dark:text-gray-300 text-sm">Sistema de Gestion</p>
+            <h1 className="text-lg font-semibold text-slate-900 dark:text-white leading-tight">TechVault</h1>
+            <p className="text-slate-500 dark:text-gray-300 text-xs">Sistema de Gestion</p>
           </div>
         </div>
 
-        <p className="text-slate-500 dark:text-gray-400 text-xs mb-4 tracking-wide">NAVEGACION</p>
+        <p className="text-slate-500 dark:text-gray-400 text-xs mb-2 tracking-wide">NAVEGACION</p>
 
-        <nav className="flex flex-col gap-3">
-          <NavLink to="/dashboard" className={getLinkClassName}>
-            <HomeIcon className="h-5 w-5" />
-            Inicio
-          </NavLink>
-
-          <NavLink to="/catalogo" className={getLinkClassName}>
-            <BriefcaseIcon className="h-5 w-5" />
-            Catalogo
-          </NavLink>
-
-          <NavLink to="/estadisticas" className={getLinkClassName}>
-            <ChartBarIcon className="h-5 w-5" />
-            Estadisticas
-          </NavLink>
-
+        <nav className="flex flex-col gap-0.5">
+          <NavLink to="/dashboard" className={getLinkClassName}><HomeIcon className="h-5 w-5 flex-shrink-0" />Inicio</NavLink>
+          <NavLink to="/catalogo" className={getLinkClassName}><BriefcaseIcon className="h-5 w-5 flex-shrink-0" />Catalogo</NavLink>
+          <NavLink to="/estadisticas" className={getLinkClassName}><ChartBarIcon className="h-5 w-5 flex-shrink-0" />Estadisticas</NavLink>
           <NavLink to="/carrito" className={getLinkClassName}>
-            <ShoppingCartIcon className="h-5 w-5" />
-            Carrito
-            {cartCount > 0 && (
-              <span style={{ marginLeft: "auto", background: "#2563eb", color: "#fff", borderRadius: "50%", width: "20px", height: "20px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.7rem", fontWeight: 800, flexShrink: 0 }}>
-                {cartCount > 99 ? "99+" : cartCount}
-              </span>
-            )}
+            <ShoppingCartIcon className="h-5 w-5 flex-shrink-0" />Carrito
+            <Badge count={cartCount} bg="#2563eb" />
           </NavLink>
-
-          <NavLink to="/mis-pedidos" className={getLinkClassName}>
-            <DocumentTextIcon className="h-5 w-5" />
-            Mis pedidos
-          </NavLink>
-
+          <NavLink to="/mis-pedidos" className={getLinkClassName}><DocumentTextIcon className="h-5 w-5 flex-shrink-0" />Mis pedidos</NavLink>
           <NavLink to="/favoritos" className={getLinkClassName}>
-            <BookmarkIcon className="h-5 w-5" />
-            Favoritos
-            {favCount > 0 && (
-              <span style={{ marginLeft: "auto", background: "#ef4444", color: "#fff", borderRadius: "50%", width: "20px", height: "20px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.7rem", fontWeight: 800, flexShrink: 0 }}>
-                {favCount > 99 ? "99+" : favCount}
-              </span>
-            )}
+            <BookmarkIcon className="h-5 w-5 flex-shrink-0" />Favoritos
+            <Badge count={favCount} bg="#ef4444" />
           </NavLink>
-
           <NavLink to="/notificaciones" className={getLinkClassName}>
-            <BellIcon className="h-5 w-5" />
-            Notificaciones
-            {notifCount > 0 && (
-              <span style={{ marginLeft: "auto", background: "#f59e0b", color: "#000", borderRadius: "50%", width: "20px", height: "20px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.7rem", fontWeight: 800, flexShrink: 0 }}>
-                {notifCount > 99 ? "99+" : notifCount}
-              </span>
-            )}
+            <BellIcon className="h-5 w-5 flex-shrink-0" />Notificaciones
+            <Badge count={notifCount} bg="#f59e0b" color="#000" />
           </NavLink>
+          <NavLink to="/mi-perfil" className={getLinkClassName}><UserIcon className="h-5 w-5 flex-shrink-0" />Mi perfil</NavLink>
+          <NavLink to="/soporte" className={getLinkClassName}><LightBulbIcon className="h-5 w-5 flex-shrink-0" />Soporte</NavLink>
 
-          <NavLink to="/mi-perfil" className={getLinkClassName}>
-            <UserIcon className="h-5 w-5" />
-            Mi perfil
-          </NavLink>
-
-          <NavLink to="/soporte" className={getLinkClassName}>
-            <LightBulbIcon className="h-5 w-5" />
-            Soporte
-          </NavLink>
-
-          {/* Solo Admin */}
           {isAdminUser && (
             <>
               <p className="text-slate-400 dark:text-gray-500 text-xs mt-3 mb-1 tracking-wide px-1">ADMINISTRACIÓN</p>
-              <NavLink to="/admin/productos" className={getLinkClassName}>
-                <PlusCircleIcon className="h-5 w-5" />
-                Agregar producto
-              </NavLink>
-              <NavLink to="/admin/usuarios" className={getLinkClassName}>
-                <UsersIcon className="h-5 w-5" />
-                Usuarios
-              </NavLink>
+              <NavLink to="/admin/productos" className={getLinkClassName}><PlusCircleIcon className="h-5 w-5 flex-shrink-0" />Agregar producto</NavLink>
+              <NavLink to="/admin/usuarios" className={getLinkClassName}><UsersIcon className="h-5 w-5 flex-shrink-0" />Usuarios</NavLink>
             </>
           )}
         </nav>
       </div>
 
-      <div className="flex flex-col gap-3">
-        <button
-          onClick={toggleTheme}
-          className="flex items-center gap-3 px-4 py-3 rounded-xl bg-slate-200 text-slate-800 hover:bg-slate-300 dark:bg-[#0b1326] dark:text-white dark:hover:bg-[#0f2136] transition"
-        >
+      <div className="flex flex-col gap-2 mt-4">
+        <button onClick={toggleTheme} className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-slate-200 text-slate-800 text-sm hover:bg-slate-300 dark:bg-[#0b1326] dark:text-white dark:hover:bg-[#0f2136] transition">
           {theme === "dark" ? <LightBulbIcon className="h-5 w-5" /> : <MoonIcon className="h-5 w-5" />}
           {theme === "dark" ? "Modo claro" : "Modo oscuro"}
         </button>
 
         {firebaseUser ? (
-          <div className="flex items-center gap-2 px-3 py-3 rounded-xl bg-slate-200 border border-slate-300 dark:bg-[#0b1326] dark:border-gray-700/50">
-            <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-lg ring-1 ring-white/10 flex-shrink-0">
+          <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-slate-200 border border-slate-300 dark:bg-[#0b1326] dark:border-gray-700/50">
+            <div className="w-9 h-9 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-lg flex-shrink-0">
               {profile.photoURL ? (
-                <img
-                  src={profile.photoURL}
-                  alt={profile.nombre}
-                  className="w-full h-full object-cover"
-                  style={{ aspectRatio: "1 / 1", borderRadius: "50%", objectFit: "cover", objectPosition: "center" }}
-                />
+                <img src={profile.photoURL} alt={profile.nombre} className="w-full h-full object-cover" style={{ borderRadius: "50%" }} />
               ) : (
-                <span className="text-white text-lg font-bold">
-                  {profile.nombre?.charAt(0)?.toUpperCase() || "U"}
-                </span>
+                <span className="text-white text-sm font-bold">{profile.nombre?.charAt(0)?.toUpperCase() || "U"}</span>
               )}
             </div>
             <div className="flex flex-col flex-1 min-w-0 px-1">
-              <span className="text-sm font-semibold text-slate-900 dark:text-white truncate">
-                {profile.nombre || "Usuario"}
-              </span>
-              <span className="text-xs text-slate-600 dark:text-gray-400 truncate">
-                {profile.rol || "Cliente"}
-              </span>
+              <span className="text-sm font-semibold text-slate-900 dark:text-white truncate">{profile.nombre || "Usuario"}</span>
+              <span className="text-xs text-slate-600 dark:text-gray-400 truncate">{profile.rol || "Cliente"}</span>
             </div>
-            <button
-              onClick={handleLogout}
-              className="p-1.5 rounded-lg hover:bg-slate-300 dark:hover:bg-gray-700/50 transition-colors group flex-shrink-0 ml-1"
-              title="Cerrar sesion"
-            >
-              <ArrowRightOnRectangleIcon className="text-slate-500 dark:text-gray-400 group-hover:text-slate-800 dark:group-hover:text-white h-5 w-5" />
+            <button onClick={handleLogout} className="p-1.5 rounded-lg hover:bg-slate-300 dark:hover:bg-gray-700/50 transition-colors flex-shrink-0" title="Cerrar sesion">
+              <ArrowRightOnRectangleIcon className="text-slate-500 dark:text-gray-400 h-5 w-5" />
             </button>
           </div>
         ) : (
-          <button
-            onClick={() => setShowAuthModal(true)}
-            className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold shadow-lg transition-all"
-          >
+          <button onClick={() => setShowAuthModal(true)} className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-sm font-semibold shadow-lg transition-all">
             <ArrowRightStartOnRectangleIcon className="h-5 w-5" />
             Iniciar Sesión
           </button>
         )}
       </div>
+    </div>
+  );
 
-      {showAuthModal && (
-        <AuthModal
-          onClose={() => setShowAuthModal(false)}
-          onSuccess={() => setShowAuthModal(false)}
+  return (
+    <>
+      {/* ── Botón hamburguesa (solo móvil) ── */}
+      <button
+        onClick={() => setOpen(true)}
+        className="md:hidden fixed top-4 left-4 z-50 w-10 h-10 flex items-center justify-center rounded-xl bg-white dark:bg-[#0b1326] shadow-lg border border-slate-200 dark:border-slate-700"
+        aria-label="Abrir menú"
+      >
+        <Bars3Icon className="h-6 w-6 text-slate-700 dark:text-white" />
+      </button>
+
+      {/* ── Overlay (móvil) ── */}
+      {open && (
+        <div
+          className="md:hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
+          onClick={() => setOpen(false)}
         />
       )}
-    </div>
+
+      {/* ── Sidebar móvil (drawer) ── */}
+      <div className={`md:hidden fixed top-0 left-0 z-50 h-full w-72 bg-gradient-to-b from-slate-50 to-slate-100 dark:from-[#0a0a0f] dark:to-[#000000] p-5 shadow-2xl border-r border-slate-200 dark:border-slate-800 overflow-y-auto transition-transform duration-300 ${open ? "translate-x-0" : "-translate-x-full"}`}>
+        {/* Botón cerrar */}
+        <button onClick={() => setOpen(false)} className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 transition" aria-label="Cerrar menú">
+          <XMarkIcon className="h-5 w-5 text-slate-600 dark:text-slate-300" />
+        </button>
+        <SidebarContent />
+      </div>
+
+      {/* ── Sidebar desktop (fijo) ── */}
+      <div className="hidden md:flex w-72 min-h-screen flex-shrink-0 bg-gradient-to-b from-slate-50 to-slate-100 dark:from-[#0a0a0f] dark:to-[#000000] text-slate-900 dark:text-white p-5 shadow-xl border-r border-slate-200 dark:border-slate-800 flex-col justify-between sticky top-0 h-screen overflow-y-auto">
+        <SidebarContent />
+      </div>
+
+      {showAuthModal && (
+        <AuthModal onClose={() => setShowAuthModal(false)} onSuccess={() => setShowAuthModal(false)} />
+      )}
+    </>
   );
 }
